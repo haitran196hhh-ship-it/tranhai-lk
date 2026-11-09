@@ -1,0 +1,10 @@
+.vscode/
+node_modules/
+.wrangler/
+.env
+public/images/
+src/
+build.js
+build.bat
+push.bat
+src huy hiệu/

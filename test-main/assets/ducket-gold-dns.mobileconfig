@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadDisplayName</key>
+    <string>Ducket Gold DNS</string>
+    <key>PayloadDescription</key>
+    <string>HTTPS DNS profile for Ducket Gold DNS</string>
+    <key>PayloadOrganization</key>
+    <string>Ducket Gold DNS</string>
+    <key>PayloadIdentifier</key>
+    <string>gold-dns.profile.828ddcb2cd98fe474ef4914f106ec7a2</string>
+    <key>PayloadUUID</key>
+    <string>828ddcb2cd98fe474ef4914f106ec7a2</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadContent</key>
+    <array>
+        <!-- 1. Chứng chỉ gốc Ducket Gold DNS Root CA -->
+        <dict>
+            <key>PayloadCertificateFileName</key>
+            <string>ducket-gold-dns-root-ca.cer</string>
+            <key>PayloadDisplayName</key>
+            <string>Ducket Gold DNS Root CA</string>
+            <key>PayloadDescription</key>
+            <string>Ducket Gold DNS Root CA</string>
+            <key>PayloadOrganization</key>
+            <string>Ducket Gold DNS</string>
+            <key>PayloadIdentifier</key>
+            <string>gold-dns.ca.828ddcb2cd98fe474ef4914f106ec7a2</string>
+            <key>PayloadUUID</key>
+            <string>828ddcb2cd98fe474ef4914f106ec7a2-ca</string>
+            <key>PayloadType</key>
+            <string>com.apple.security.root</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>PayloadContent</key>
+            <data>
+MIIFZDCCA0ygAwIBAgIUVfwTySZySxkpv0kCUvr5zz9zv2YwDQYJKoZIhvcNAQEL
+BQAwODEUMBIGA1UECgwLTG9ja2V0IEdvbGQxIDAeBgNVBAMMF0xvY2tldCBHb2xk
+IEROUyBSb290IENBMB4XDTI2MTAxMjE0NTgyNloXDTM2MTAwOTE0NTgyNlowODEU
+MBIGA1UECgwLTG9ja2V0IEdvbGQxIDAeBgNVBAMMF0xvY2tldCBHb2xkIEROUyBS
+b290IENBMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnB6jB6d9MRJa
+FJB+tdWsR6QkWp5jdrfLQTRs1g+Q9KAH1PXWfSWbCEYOx49ha8eE9UZHm7KgOxwv
+Zra+fM7siwZ5Z1NEhzLoC7zQ/KfHKRBb5+jiE4PbQTK9Y0JZCcoFVveZnnt4oypl
+huK76d7Ka4KYaum2cYBoKDM60mYv3WtEelU5sMpZIQqfC/xXIWu8AScegKGrGJ/o
+NSv7qJQqVYyBknz6syWf9e9XomlLd2ugFaK0AuMy8OZ5WdEZkq08OKhUaj1XeZ9Y
+1JhRMfEEm5zc5Qj0Q6GzfRIUd6Bvn6bRjmPu+8tG9voNQZR65BvihcsCmRJb8W2u
+ke9EoD7epABiu6M8QOUNUoUB9pFIb2008qgZqa4lLu2u/PZ1PsD8ANKb3ihaaJ+f
+nvjLDM01SJExirB4sgcz3Uzem+gmaAoa7EkMbUWISV6QsJdP5FDVNftEvVaHZlTE
+zoHuWrPXyReqIsj3ptpQozzr+Jas4OPxV9Y6uDem4R4uWtxH++gFAZeuvsXAySWV
+IEGfYfWVrMXAiKLbVCpF6siQdOMESy7ORIx3jPv/BpEB34I1770lOdaamItm/ojR
+PW0oZ/YyY/KNPNxdUvrXaFnPWpSBT6NDhJ1+k5wILQOe4CkRXYoA8AVqdWz981+
+OLePmTINXHqcb62jcWBtrRP/QEN7QGrUCAwEAAaNmMGQwHQYDVR0OBBYEFKfmFDra
+F2gbp1JktH1Ro7+HnP9hMB8GA1UdIwQYMBaAFKfmFDraF2gbp1JktH1Ro7+HnP9h
+MBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgEGMA0GCSqGSIb3DQEB
+CwUAA4ICAQB/MQ0Kv3+KLqa1Wuf4jOxoZEn0KuXHcbShNhaN8MBPaexepNFo1vOp
+rlz1ybExHtRHzyqu9QZHIK1flLHJNKkhPw+sw/EhvrAGv4979cSmRYe22GhSVeAC
+xpF82RoNIBaaaM8XcJq8qzCbNT+Ok6+nQvCs4R9WS5jevH5/Bfx6liGNVIW3PiOx
+pfQQ6+lxqRxjmk91/bCFmuvLJJ6KQiszgARIqrfOwnOoxPUI5civFdjdYlHEVbDy
+UQ6sfgOpLlejDid7eptNJqRXr+/BV+RaTgheI4zvHUsPwoM10Lo3JAcF7yzDqUQW
+UjZPLxhsEtx9+5XR0ykPiuG7T4VT7yl9VATJxLRVSGX3S8/Jpp8OhD17J73u09R8
+YqvuooZLtSHEAtj1l+w92KrrA88hviPIxVX7+JcBW9KkXe51/QIFgoO2AYqMUR7X
+5fdjqo0atIzrlbsDFLDhIrS9qXifGX7ZTQtS1b9EjumgoQcbBlbAHPdSWvTJ7X0q
+lNPkUk7khLkZDNFZxL+HWmaGiLTuiRESqTjxr+ACSPND+9vAv4XmM0BSCrClw/7P
+RrzC+nXZMWwwcyMO8areQtmJ1fqb+UwNGXty9mEIULIQk+MZzfFCOTTa9ys0vhwU
+fLgnqKMeUeqvzwnBLr7eVevkdULe6X3LRveP9RK/Q85HBPQjvL8YDg==
+            </data>
+        </dict>
+
+        <!-- 2. Cấu hình DoH DNS giải mã Locket Gold -->
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Ducket Gold DNS</string>
+            <key>PayloadDescription</key>
+            <string>Ducket Gold DNS HTTPS</string>
+            <key>PayloadOrganization</key>
+            <string>Ducket Gold DNS</string>
+            <key>PayloadIdentifier</key>
+            <string>gold-dns.828ddcb2cd98fe474ef4914f106ec7a2</string>
+            <key>PayloadUUID</key>
+            <string>828ddcb2cd98fe474ef4914f106ec7a2-dns</string>
+            <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://dns.locket.gold/dns-query/fbf587c4f04c731331805a22199ec217b499a2e51b8ac429bd949a40bca50290</string>
+                <key>SupplementalMatchDomains</key>
+                <array>
+                    <string>api.revenuecat.com</string>
+                    <string>firebaseremoteconfig.googleapis.com</string>
+                    <string>firebasestorage.googleapis.com</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>

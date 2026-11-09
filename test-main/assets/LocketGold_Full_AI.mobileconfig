@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadDisplayName</key>
+  <string>Locket Gold VIP 💛 &amp; Full AI Filter (No VPN)</string>
+  <key>PayloadDescription</key>
+  <string>Cấu hình DNS-over-HTTPS (DoH) chạy trực tiếp không cần bật VPN/Shadowrocket: Mở khóa Locket Gold vĩnh viễn, trọn bộ Photobooth &amp; 42 AI Sticker, Spotify Premium và chặn quảng cáo.</string>
+  <key>PayloadIdentifier</key>
+  <string>com.locketgold.fullai.config</string>
+  <key>PayloadOrganization</key>
+  <string>King of Locket Gold VIP</string>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>7EFC14CA-B59F-4BAD-B487-0C4FC0C4D3F4</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadContent</key>
+  <array>
+
+    <!-- 1. Chứng chỉ gốc Root CA (Bắt buộc bật Tin cậy trong Cài đặt > Giới thiệu > Cài đặt tin cậy chứng nhận) -->
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.security.root</string>
+      <key>PayloadIdentifier</key>
+      <string>com.locketgold.root.ca</string>
+      <key>PayloadUUID</key>
+      <string>8F4C2B1A-6D3E-4A90-9C17-2B5E7A0D4F61</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadDisplayName</key>
+      <string>Locket Gold Custom Root CA</string>
+      <key>PayloadDescription</key>
+      <string>Sau khi cài hồ sơ, vào Cài đặt &gt; Cài đặt chung &gt; Giới thiệu &gt; Cài đặt tin cậy chứng nhận và bật Locket Gold Custom Root CA.</string>
+      <key>PayloadCertificateFileName</key>
+      <string>LocketGoldRootCA.der</string>
+      <key>PayloadContent</key>
+      <data>
+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
+      </data>
+    </dict>
+
+    <!-- 2. DNS-over-HTTPS (DoH) Full Route: Locket Gold, Photobooth, AI Filter & Spotify -->
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.dnsSettings.managed</string>
+      <key>PayloadIdentifier</key>
+      <string>com.locketgold.dns.ai.full</string>
+      <key>PayloadUUID</key>
+      <string>2D829C72-2E62-4CBE-9294-052385226BEA</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadDisplayName</key>
+      <string>Locket Gold VIP &amp; Full AI Filter DNS</string>
+      <key>PayloadDescription</key>
+      <string>DNS-over-HTTPS mở khóa Locket Gold, Photobooth, 42 Bộ lọc AI &amp; Spotify Premium (Không cần bật VPN)</string>
+      <key>DNSSettings</key>
+      <dict>
+        <key>DNSProtocol</key>
+        <string>HTTPS</string>
+        <key>ServerAddresses</key>
+        <array>
+          <string>180.93.120.69</string>
+        </array>
+        <key>ServerURL</key>
+        <string>https://dns.uplocket.io.vn/dns-query/55394b8ccc6b3b56a7aef8e25002b05459cb72cd274d1e115f675eca5a455fed</string>
+        <key>SupplementalMatchDomains</key>
+        <array>
+          <!-- 1. Locket Gold & RevenueCat Entitlements -->
+          <string>api.revenuecat.com</string>
+          <string>revenuecat.com</string>
+          <string>analytics.revenuecat.com</string>
+          <string>rc-cdn.revenuecat.com</string>
+          <string>sdk.revenuecat.com</string>
+          <string>gateway.revenuecat.com</string>
+          <string>errors.revenuecat.com</string>
+          <string>identity.revenuecat.com</string>
+          <string>customer.revenuecat.com</string>
+          <string>subscriptions.revenuecat.com</string>
+
+          <!-- 2. Firebase Remote Config & AI Filter Cloud Functions -->
+          <string>firebaseremoteconfig.googleapis.com</string>
+          <string>firebaseremoteconfigrealtime.googleapis.com</string>
+          <string>firebaselogging.googleapis.com</string>
+          <string>firebaselogging-pa.googleapis.com</string>
+          <string>us-central1-locket-4252a.cloudfunctions.net</string>
+          <string>cloudfunctions.net</string>
+          <string>appattest.apple.com</string>
+          <string>amplitude.com</string>
+          <string>api2.amplitude.com</string>
+
+          <!-- 3. Spotify Premium Endpoints -->
+          <string>spclient.wg.spotify.com</string>
+          <string>spclient.spotify.com</string>
+          <string>gae2-spclient.spotify.com</string>
+          <string>gew4-spclient.spotify.com</string>
+          <string>guc3-spclient.spotify.com</string>
+          <string>gue1-spclient.spotify.com</string>
+          <string>gew1-spclient.spotify.com</string>
+          <string>dealer.spotify.com</string>
+          <string>apresolve.spotify.com</string>
+          <string>wg.spotify.com</string>
+          <string>guc3.spotify.com</string>
+          <string>gue3.spotify.com</string>
+          <string>gua3.spotify.com</string>
+          <string>audio-ak-spotify-com.akamaized.net</string>
+          <string>gads.current.spotify.com</string>
+          <string>crashdump.spotify.com</string>
+          <string>adeventtracker.spotify.com</string>
+          <string>log.spotify.com</string>
+          <string>spotify.com</string>
+
+          <!-- 4. YouTube & DoubleClick Ad-Blocking -->
+          <string>youtubei.googleapis.com</string>
+          <string>googlevideo.com</string>
+          <string>googleads.g.doubleclick.net</string>
+          <string>pagead2.googlesyndication.com</string>
+          <string>ad.doubleclick.net</string>
+          <string>pubads.g.doubleclick.net</string>
+          <string>securepubads.g.doubleclick.net</string>
+          <string>imasdk.googleapis.com</string>
+          <string>ads.youtube.com</string>
+          <string>ad.youtube.com</string>
+          <string>adclick.g.doubleclick.net</string>
+        </array>
+      </dict>
+    </dict>
+
+  </array>
+</dict>
+</plist>

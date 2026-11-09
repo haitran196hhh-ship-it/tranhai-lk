@@ -1,0 +1,27 @@
+name: Spotify Rules (>=iOS15)
+desc: Mở khóa tính năng Spotify (chặn quảng cáo, chọn bài tùy ý, bỏ giới hạn shuffle)
+author: VIP Team (@minhhiep07)
+
+http:
+  mitm:
+    - 'spclient.wg.spotify.com'
+    - '*spclient.spotify.com'
+  script:
+    - match: ^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(:443)?)\/(bootstrap\/v1\/bootstrap|user-customization-service\/v1\/customize)$
+      name: smile_spotify
+      type: response
+      require-body: true
+      binary-mode: true
+      timeout: 10
+    - match: ^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(:443)?)\/(artistview\/v1\/artist|album-entity-view\/v2\/album)\/
+      name: smile_spotify_json
+      type: request
+      timeout: 10
+
+script-providers:
+  smile_spotify:
+    url: https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/js/spotify-proto.js
+    interval: 86400
+  smile_spotify_json:
+    url: https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/js/spotify-json.js
+    interval: 86400
