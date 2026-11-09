@@ -46,28 +46,28 @@ Spotify-Rules/
 ### 1. Shadowrocket (Cấu hình độc lập - Khuyên dùng)
 Dán link sau vào **Shadowrocket** $\to$ tab **Cấu hình (Config)** $\to$ bấm dấu **`+` (Tệp từ xa)**:
 ```text
-https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/Spotify.conf
+https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/Spotify.conf
 ```
 
 ### 2. Shadowrocket / Surge (Dạng Mô-đun)
 Dán link sau vào **Mô-đun (Modules)** $\to$ **Cài đặt mô-đun từ URL**:
 ```text
-https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/module/Spotify.sgmodule
+https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/module/Spotify.sgmodule
 ```
 
 ### 3. Loon (Plugin)
 ```text
-https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/plugin/spotify.plugin
+https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/plugin/spotify.plugin
 ```
 
 ### 4. Quantumult X (Rewrite Remote)
 ```text
-https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/module/spotify.conf
+https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/module/spotify.conf
 ```
 
 ### 5. Stash (Override)
 ```text
-https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/module/spotify.stoverride
+https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/module/spotify.stoverride
 ```
 
 ---

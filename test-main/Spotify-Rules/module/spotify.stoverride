@@ -20,8 +20,8 @@ http:
 
 script-providers:
   smile_spotify:
-    url: https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/js/spotify-proto.js
+    url: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/js/spotify-proto.js
     interval: 86400
   smile_spotify_json:
-    url: https://locket-vip.mhiep20077.workers.dev/Spotify-Rules/js/spotify-json.js
+    url: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify-Rules/js/spotify-json.js
     interval: 86400

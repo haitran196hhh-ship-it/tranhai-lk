@@ -8,27 +8,27 @@ Kho lưu trữ Module và cấu hình mở khóa tính năng VIP cho các ứng 
 
 * **Gói tổng hợp 3-trong-1 (Locket Gold 45s + YouTube Premium + Spotify Eevee VIP):**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/Locket_YouTube.sgmodule
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Locket_YouTube.sgmodule
   ```
 
 * **Gói Locket Gold riêng lẻ (Anti-Cache 304 + Video 45s):**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/modules/Locket_minhhiep08.sgmodule
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Locket_minhhiep08.sgmodule
   ```
 
 * **Gói Spotify Premium (Chọn bài tự do, tắt shuffle bắt buộc, chất lượng âm thanh Cao):**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/modules/Spotify.sgmodule
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Spotify.sgmodule
   ```
 
 * **Gói YouTube Premium & Music VIP (Chặn quảng cáo, PiP, phát nền, dịch phụ đề):**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/modules/YouTube.sgmodule
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/YouTube.sgmodule
   ```
 
 * **Gói Meitu XiuXiu & Wink VIP:**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/modules/Meitu.sgmodule
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Meitu.sgmodule
   ```
 
 ---
@@ -37,22 +37,22 @@ Kho lưu trữ Module và cấu hình mở khóa tính năng VIP cho các ứng 
 
 * **Cấu hình tổng hợp (Locket Gold, YouTube & Spotify VIP 3-trong-1):**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/Locket_YouTube.conf
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Locket_YouTube.conf
   ```
 
 * **Cấu hình Spotify Premium Standalone:**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/Spotify.conf
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify.conf
   ```
 
 * **Cấu hình YouTube Premium & Music Standalone:**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/YouTube.conf
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/YouTube.conf
   ```
 
 * **Cấu hình Meitu VIP Standalone:**
   ```text
-  https://locket-vip.mhiep20077.workers.dev/Meitu.conf
+  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Meitu.conf
   ```
 
 ---

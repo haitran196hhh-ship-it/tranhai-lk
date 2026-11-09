@@ -2,11 +2,11 @@
 #!desc=Mở khóa VIP Meitu XiuXiu & Wink
 #!author=MinhHiep08
 #!system=ios
-#!url=https://locket-vip.mhiep20077.workers.dev/modules/Meitu.sgmodule
+#!url=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Meitu.sgmodule
 #!====================================
 
 [MITM]
 hostname = %APPEND%, *.xiuxiu.meitu.com, api-sub.meitu.com, meitudata.com, meitu.com
 
 [Script]
-Meitu = type=http-response,pattern=^https?:\/\/([^/]+\.)?meitu\.com\/.*/(vip|user|account|h5)\/?,requires-body=1,max-size=-1,script-path=https://locket-vip.mhiep20077.workers.dev/js/MeiTuXiuXiu.js
+Meitu = type=http-response,pattern=^https?:\/\/([^/]+\.)?meitu\.com\/.*/(vip|user|account|h5)\/?,requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/MeiTuXiuXiu.js

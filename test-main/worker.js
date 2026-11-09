@@ -72,27 +72,27 @@ DOMAIN-SUFFIX,ingest.sentry.io,REJECT
 
 [Script]
 # 1. YouTube Premium & SponsorBlock
-youtube.response = type=http-response,pattern=^https:\\/\\/youtubei\\.googleapis\\.com\\/(youtubei\\/v1\\/(browse|next|player|search|reel\\/reel_watch_sequence|guide|account\\/get_setting|get_watch|log_event|config))(\\?(.*))?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://locket-vip.mhiep20077.workers.dev/js/youtube.response.js?v=20261108_48,argument="{\\"captionLang\\":\\"{{{字幕翻译语言}}}\\",\\"blockUpload\\":{{{屏蔽上传按钮}}},\\"blockImmersive\\":{{{屏蔽选段按钮}}},\\"blockShorts\\":{{{屏蔽Shorts按钮}}},\\"debug\\":{{{启用调试模式}}}}"
-youtube.request.init = type=http-request,pattern=^https?:\\/\\/[\\w-]+\\.googlevideo\\.com\\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://locket-vip.mhiep20077.workers.dev/js/youtube.request.js?v=20261108_48,argument="{\\"captionLang\\":\\"{{{字幕翻译语言}}}\\"}"
-youtube.request.log_event = type=http-request,pattern=^https:\\/\\/youtubei\\.googleapis\\.com\\/youtubei\\/v1\\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://locket-vip.mhiep20077.workers.dev/js/youtube.request.js?v=20261108_48
+youtube.response = type=http-response,pattern=^https:\\/\\/youtubei\\.googleapis\\.com\\/(youtubei\\/v1\\/(browse|next|player|search|reel\\/reel_watch_sequence|guide|account\\/get_setting|get_watch|log_event|config))(\\?(.*))?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/youtube.response.js?v=20261108_48,argument="{\\"captionLang\\":\\"{{{字幕翻译语言}}}\\",\\"blockUpload\\":{{{屏蔽上传按钮}}},\\"blockImmersive\\":{{{屏蔽选段按钮}}},\\"blockShorts\\":{{{屏蔽Shorts按钮}}},\\"debug\\":{{{启用调试模式}}}}"
+youtube.request.init = type=http-request,pattern=^https?:\\/\\/[\\w-]+\\.googlevideo\\.com\\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/youtube.request.js?v=20261108_48,argument="{\\"captionLang\\":\\"{{{字幕翻译语言}}}\\"}"
+youtube.request.log_event = type=http-request,pattern=^https:\\/\\/youtubei\\.googleapis\\.com\\/youtubei\\/v1\\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/youtube.request.js?v=20261108_48
 
 # 2. Locket Gold & Anti-Cache 304
-deleteHeader_RC = type=http-request,pattern=^https?:\\/\\/api\\.revenuecat\\.com\\/.+\\/(receipts|subscribers),script-path=https://locket-vip.mhiep20077.workers.dev/js/deleteHeader.js?v=20261108_48,timeout=60
-deleteHeader_Firebase = type=http-request,pattern=^https?:\\/\\/firebaseremoteconfig\\.googleapis\\.com\\/.+,script-path=https://locket-vip.mhiep20077.workers.dev/js/deleteHeader.js?v=20261108_48,timeout=60
+deleteHeader_RC = type=http-request,pattern=^https?:\\/\\/api\\.revenuecat\\.com\\/.+\\/(receipts|subscribers),script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/deleteHeader.js?v=20261108_48,timeout=60
+deleteHeader_Firebase = type=http-request,pattern=^https?:\\/\\/firebaseremoteconfig\\.googleapis\\.com\\/.+,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/deleteHeader.js?v=20261108_48,timeout=60
 
-revenuecat = type=http-response,pattern=^https?:\\/\\/api\\.revenuecat\\.com\\/.+\\/(receipts|subscribers),script-path=https://locket-vip.mhiep20077.workers.dev/js/Locket_minhhiep08.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
-locket_rc = type=http-response,pattern=^https?:\\/\\/firebaseremoteconfig\\.googleapis\\.com\\/.+,script-path=https://locket-vip.mhiep20077.workers.dev/js/Locket_Unlocked.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
+revenuecat = type=http-response,pattern=^https?:\\/\\/api\\.revenuecat\\.com\\/.+\\/(receipts|subscribers),script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/Locket_minhhiep08.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
+locket_rc = type=http-response,pattern=^https?:\\/\\/firebaseremoteconfig\\.googleapis\\.com\\/.+,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/Locket_Unlocked.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
 
 # 3. Locket Photobooth & AI Filters
-locket_pb_req = type=http-request,pattern=^https?:\\/\\/(us-central1-locket-4252a\\.cloudfunctions\\.net|api\\.locketcamera\\.com)\\/generateFilteredImage,script-path=https://locket-vip.mhiep20077.workers.dev/js/Locket_Photobooth.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
+locket_pb_req = type=http-request,pattern=^https?:\\/\\/(us-central1-locket-4252a\\.cloudfunctions\\.net|api\\.locketcamera\\.com)\\/generateFilteredImage,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/Locket_Photobooth.js?v=20261108_48,requires-body=true,max-size=-1,timeout=60
 
 # 4. Locket Profile & Filter Unblock
-locket_change_profile = type=http-request,pattern=^https:\\/\\/api\\.locketcamera\\.com\\/changeProfileInfo,script-path=https://locket-vip.mhiep20077.workers.dev/js/locket_filter_unlock.js?v=20261108_48,timeout=60
-locket_filter_resp = type=http-response,pattern=^https?:\\/\\/api\\.locketcamera\\.com\\/.+,requires-body=true,max-size=-1,script-path=https://locket-vip.mhiep20077.workers.dev/js/locket_filter_unlock.js?v=20261108_48,timeout=60
+locket_change_profile = type=http-request,pattern=^https:\\/\\/api\\.locketcamera\\.com\\/changeProfileInfo,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/locket_filter_unlock.js?v=20261108_48,timeout=60
+locket_filter_resp = type=http-response,pattern=^https?:\\/\\/api\\.locketcamera\\.com\\/.+,requires-body=true,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/locket_filter_unlock.js?v=20261108_48,timeout=60
 
 # 5. Spotify Premium & Customization
-spotify-json = type=http-request,pattern=^https:\\/\\/(spclient\\.wg\\.spotify\\.com|.*-spclient\\.spotify\\.com(?::443)?)\\/artistview\\/v1\\/artist|album-entity-view\\/v2\\/album)\\/,requires-body=0,script-path=https://locket-vip.mhiep20077.workers.dev/js/spotify-json.js?v=20261108_48
-spotify-proto = type=http-response,pattern=^https:\\/\\/(spclient\\.wg\\.spotify\\.com|.*-spclient\\.spotify\\.com(?::443)?)\\/(bootstrap\\/v1\\/bootstrap|user-customization-service\\/v1\\/customize),requires-body=1,binary-body-mode=1,max-size=0,script-path=https://locket-vip.mhiep20077.workers.dev/js/spotify-proto.js?v=20261108_48,script-update-interval=0
+spotify-json = type=http-request,pattern=^https:\\/\\/(spclient\\.wg\\.spotify\\.com|.*-spclient\\.spotify\\.com(?::443)?)\\/artistview\\/v1\\/artist|album-entity-view\\/v2\\/album)\\/,requires-body=0,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/spotify-json.js?v=20261108_48
+spotify-proto = type=http-response,pattern=^https:\\/\\/(spclient\\.wg\\.spotify\\.com|.*-spclient\\.spotify\\.com(?::443)?)\\/(bootstrap\\/v1\\/bootstrap|user-customization-service\\/v1\\/customize),requires-body=1,binary-body-mode=1,max-size=0,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/spotify-proto.js?v=20261108_48,script-update-interval=0
 
 [Host]
 firebaseremoteconfigrealtime.googleapis.com = 0.0.0.0
@@ -410,35 +410,35 @@ function modelPrompt(style) {
 }
 
 const FRAME_URL_MAP = {
-  "pb_strawberry": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_strawberry.png",
-  "frame_berry_days": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_strawberry.png",
-  "pb_vintage": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_vintage.png",
-  "frame_happy_snap": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_vintage.png",
-  "pb_galaxy": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_galaxy.png",
-  "frame_sky_diary": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_galaxy.png",
-  "pb_holo_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_holo_4cut.png",
-  "pb_scrapbook_ripped_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_scrapbook_ripped_4cut.png",
-  "pb_ripped_paper_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_ripped_paper_4cut.png",
-  "pb_denim_ripped_2x2": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_denim_ripped_2x2.png",
-  "frame_classic_pb": "https://locket-vip.mhiep20077.workers.dev/assets/frames/photoboot.png",
-  "photobooth_cute": "https://locket-vip.mhiep20077.workers.dev/assets/frames/photobooth_cute.png",
-  "photobooth_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/photobooth_4cut.png",
-  "pb_tet_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_tet_4cut.png",
-  "frame_tet_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_tet_4cut.png",
-  "photobooth_tet": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_tet_4cut.png",
-  "pb_xmas_4cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_xmas_4cut.png",
-  "pb_xmas_3cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_xmas_3cut.png",
-  "pb_xmas_2cut": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_xmas_2cut.png",
-  "khung_tet_mai_vang": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_mai_vang.png",
-  "khung_tet_be_ran": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_be_ran.png",
-  "khung_tet_phao_hoa": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_phao_hoa.png",
-  "khung_tet_lan_su_rong": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_lan_su_rong.png",
-  "khung_tet_be_ran_li_xi": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_be_ran_li_xi.png",
-  "khung_tet_meo_than_tai": "https://locket-vip.mhiep20077.workers.dev/assets/frames/khung_tet_meo_than_tai.png",
-  "pb_single_denim_ripped": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_single_denim_ripped.png",
-  "pb_single_film_nostalgia": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_single_film_nostalgia.png",
-  "pb_single_y2k_silver_holo": "https://locket-vip.mhiep20077.workers.dev/assets/frames/pb_single_y2k_silver_holo.png",
-  "cmt_locket": "https://locket-vip.mhiep20077.workers.dev/assets/frames/cmt_locket.png"
+  "pb_strawberry": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_strawberry.png",
+  "frame_berry_days": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_strawberry.png",
+  "pb_vintage": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_vintage.png",
+  "frame_happy_snap": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_vintage.png",
+  "pb_galaxy": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_galaxy.png",
+  "frame_sky_diary": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_galaxy.png",
+  "pb_holo_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_holo_4cut.png",
+  "pb_scrapbook_ripped_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_scrapbook_ripped_4cut.png",
+  "pb_ripped_paper_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_ripped_paper_4cut.png",
+  "pb_denim_ripped_2x2": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_denim_ripped_2x2.png",
+  "frame_classic_pb": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/photoboot.png",
+  "photobooth_cute": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/photobooth_cute.png",
+  "photobooth_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/photobooth_4cut.png",
+  "pb_tet_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_tet_4cut.png",
+  "frame_tet_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_tet_4cut.png",
+  "photobooth_tet": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_tet_4cut.png",
+  "pb_xmas_4cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_xmas_4cut.png",
+  "pb_xmas_3cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_xmas_3cut.png",
+  "pb_xmas_2cut": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_xmas_2cut.png",
+  "khung_tet_mai_vang": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_mai_vang.png",
+  "khung_tet_be_ran": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_be_ran.png",
+  "khung_tet_phao_hoa": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_phao_hoa.png",
+  "khung_tet_lan_su_rong": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_lan_su_rong.png",
+  "khung_tet_be_ran_li_xi": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_be_ran_li_xi.png",
+  "khung_tet_meo_than_tai": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/khung_tet_meo_than_tai.png",
+  "pb_single_denim_ripped": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_single_denim_ripped.png",
+  "pb_single_film_nostalgia": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_single_film_nostalgia.png",
+  "pb_single_y2k_silver_holo": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/pb_single_y2k_silver_holo.png",
+  "cmt_locket": "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/assets/frames/cmt_locket.png"
 };
 
 function generatePhotoboothSvg(img1, img2, img3, img4, frameKey) {
@@ -1510,7 +1510,7 @@ export default {
 
     // Chặn hoàn toàn và khai tử Locket_YouTube.sgmodule
     if (pathname.includes("Locket_YouTube.sgmodule") || pathname.includes("Locket_YouTube.conf")) {
-      return new Response("⛔ CẢNH BÁO: Cấu hình Locket_YouTube đã bị khóa và khai tử vĩnh viễn bởi MinhHiep08! Vui lòng chuyển sang sử dụng mô-đun Locket_Only_Cold.sgmodule tại: https://locket-vip.mhiep20077.workers.dev/Locket_Only_Cold.sgmodule", {
+      return new Response("⛔ CẢNH BÁO: Cấu hình Locket_YouTube đã bị khóa và khai tử vĩnh viễn bởi MinhHiep08! Vui lòng chuyển sang sử dụng mô-đun Locket_Only_Cold.sgmodule tại: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Locket_Only_Cold.sgmodule", {
         status: 403,
         headers: { "Content-Type": "text/plain; charset=utf-8" }
       });
