@@ -305,7 +305,7 @@ scriptings:
 - http_response:
     name: Locket_Gold
     match: ^https:\/\/api\.revenuecat\.com\/.+\/(receipts$|subscribers\/[^/]+$)
-    script_url: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/Locket_minhhiep08.js
+    script_url: https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//js/Locket_minhhiep08.js
     update_interval: 5
     body_required: true
 mitm:

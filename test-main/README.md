@@ -8,27 +8,27 @@ Kho lưu trữ Module và cấu hình mở khóa tính năng VIP cho các ứng 
 
 * **Gói tổng hợp 3-trong-1 (Locket Gold 45s + YouTube Premium + Spotify Eevee VIP):**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Locket_YouTube.sgmodule
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//Locket_YouTube.sgmodule
   ```
 
 * **Gói Locket Gold riêng lẻ (Anti-Cache 304 + Video 45s):**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Locket_minhhiep08.sgmodule
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//modules/Locket_minhhiep08.sgmodule
   ```
 
 * **Gói Spotify Premium (Chọn bài tự do, tắt shuffle bắt buộc, chất lượng âm thanh Cao):**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Spotify.sgmodule
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//modules/Spotify.sgmodule
   ```
 
 * **Gói YouTube Premium & Music VIP (Chặn quảng cáo, PiP, phát nền, dịch phụ đề):**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/YouTube.sgmodule
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//modules/YouTube.sgmodule
   ```
 
 * **Gói Meitu XiuXiu & Wink VIP:**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/modules/Meitu.sgmodule
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//modules/Meitu.sgmodule
   ```
 
 ---
@@ -37,22 +37,22 @@ Kho lưu trữ Module và cấu hình mở khóa tính năng VIP cho các ứng 
 
 * **Cấu hình tổng hợp (Locket Gold, YouTube & Spotify VIP 3-trong-1):**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Locket_YouTube.conf
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//Locket_YouTube.conf
   ```
 
 * **Cấu hình Spotify Premium Standalone:**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Spotify.conf
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//Spotify.conf
   ```
 
 * **Cấu hình YouTube Premium & Music Standalone:**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/YouTube.conf
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//YouTube.conf
   ```
 
 * **Cấu hình Meitu VIP Standalone:**
   ```text
-  https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/Meitu.conf
+  https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//Meitu.conf
   ```
 
 ---
