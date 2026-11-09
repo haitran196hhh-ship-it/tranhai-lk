@@ -13,10 +13,8 @@ const GITHUB_TOKEN = (typeof env !== "undefined" && env?.GITHUB_TOKEN) ? env.GIT
 
 // Danh sách hạt giống VIP tích hợp sẵn
 const SEED_USERS = [
-  "mhhiep", "2c7dlquxuqulknrwgpcqsqlw0sk2",
-  "th_quang08", "th_quang", "nln9pozfecsccxhuqpiwvkhfwsi2",
-  "mhhuyz", "7tulqjjxb0srwqbbp3euildiqfe3",
-  "nguyentuankietne", "blgpf4fdvbbnlmfllziy4hnbjjn1"
+  "trann_hai", "MED6GMbBM3YDBMP8Elb14M2QFgd2",
+  "aka_307", "P70UXTlzIaNxkQoRzWmHdq1Dq1p2"
 ];
 
 // Bộ nhớ RAM đệm tạm thời trên Worker
