@@ -1,35 +1,63 @@
 /**
- * Locket RevenueCat Gold Unlocker (Clean Version)
+ * Locket RevenueCat Gold Unlocker (Full Product IDs)
  * Author: TranHai307
  */
-let obj = JSON.parse($response.body || "{}");
+let obj = {};
+try {
+  obj = JSON.parse($response.body || "{}");
+} catch (e) {
+  obj = {};
+}
 
-const goldEntitlement = {
-  grace_period_expires_date: null,
-  purchase_date: "2024-01-01T00:00:00Z",
-  product_identifier: "locket_gold_yearly",
-  expires_date: "2099-12-31T23:59:59Z"
-};
+if (!obj.subscriber) {
+  obj.subscriber = {};
+}
+if (!obj.subscriber.entitlements) {
+  obj.subscriber.entitlements = {};
+}
+if (!obj.subscriber.subscriptions) {
+  obj.subscriber.subscriptions = {};
+}
 
-const goldSubscription = {
+const purchaseDate = "2024-01-01T00:00:00Z";
+const expiresDate = "2099-12-31T23:59:59Z";
+
+const subscriptionData = {
   is_sandbox: false,
   ownership_type: "PURCHASED",
   billing_issues_detected_at: null,
   period_type: "normal",
-  expires_date: "2099-12-31T23:59:59Z",
+  expires_date: expiresDate,
   grace_period_expires_date: null,
   unsubscribe_detected_at: null,
-  original_purchase_date: "2024-01-01T00:00:00Z",
-  purchase_date: "2024-01-01T00:00:00Z",
+  original_purchase_date: purchaseDate,
+  purchase_date: purchaseDate,
   store: "app_store"
 };
 
-obj.subscriber = obj.subscriber || {};
-obj.subscriber.entitlements = obj.subscriber.entitlements || {};
-obj.subscriber.subscriptions = obj.subscriber.subscriptions || {};
+const productIds = [
+  "locket_1600_1y",
+  "locket_199_1m",
+  "locket_3600_1y",
+  "locket_gold_yearly"
+];
 
-obj.subscriber.entitlements["Gold"] = goldEntitlement;
-obj.subscriber.entitlements["pro"] = goldEntitlement;
-obj.subscriber.subscriptions["locket_gold_yearly"] = goldSubscription;
+for (const pid of productIds) {
+  obj.subscriber.subscriptions[pid] = subscriptionData;
+}
 
-$done({ body: JSON.stringify(obj) });
+const entitlementData = {
+  grace_period_expires_date: null,
+  purchase_date: purchaseDate,
+  product_identifier: "locket_1600_1y",
+  expires_date: expiresDate
+};
+
+obj.subscriber.entitlements["Gold"] = entitlementData;
+obj.subscriber.entitlements["locket_gold"] = entitlementData;
+obj.subscriber.entitlements["pro"] = entitlementData;
+
+$done({
+  status: 200,
+  body: JSON.stringify(obj)
+});
