@@ -59,8 +59,8 @@ locket_rc = type=http-response,pattern=^https?:\/\/firebaseremoteconfig\.googlea
 # 3. Locket Photobooth & AI Filters
 locket_pb_req = type=http-request,pattern=^https?:\/\/(us-central1-locket-4252a\.cloudfunctions\.net|api\.locketcamera\.com)\/generateFilteredImage,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/Locket_Photobooth.js?v=20261110_fix,requires-body=true,max-size=-1,timeout=60
 
-# 4. Locket Profile & Filter Unblock
-locket_filter_resp = type=http-response,pattern=^https?:\/\/api\.locketcamera\.com\/.+,requires-body=true,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/locket_filter_unlock.js?v=20261110_fix,timeout=60
+# 4. Locket Profile & Filter Unblock (Bắt toàn bộ các đường dẫn API của locketcamera.com)
+locket_filter_resp = type=http-response,pattern=^https?:\/\/(api|gateway)\.locketcamera\.com\/.+,requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/locket_filter_unlock.js?v=20261110_fix,timeout=60
 
 # 5. Spotify Premium & Customization
 spotify-json = type=http-request,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(artistview\/v1\/artist|album-entity-view\/v2\/album)\/,requires-body=0,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/spotify-json.js?v=20261110_fix
