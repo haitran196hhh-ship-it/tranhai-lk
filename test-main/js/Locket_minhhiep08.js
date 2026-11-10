@@ -19,7 +19,7 @@ if (!obj.subscriber.subscriptions) {
   obj.subscriber.subscriptions = {};
 }
 
-const purchaseDate = "2024-01-01T00:00:00Z";
+const purchaseDate = "2010-07-30T00:00:00Z";
 const expiresDate = "2099-12-31T23:59:59Z";
 
 const subscriptionData = {
