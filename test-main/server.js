@@ -410,10 +410,12 @@ function formatLocketResponse(outputUrl, extra = {}) {
     };
 }
 
-// Lấy Base URL của server (Ưu tiên qua Cloudflare Worker để bảo mật tuyệt đối 100% gốc Render)
+// Tự động lấy đúng địa chỉ máy chủ đang chạy (Laptop hoặc Render)
 function getBaseUrl(req) {
     if (req.get('x-public-base')) return req.get('x-public-base').replace(/\/+$/, "");
-    return 'https://locket-vip.mhiep20077.workers.dev';
+    if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    return `${proto}://${req.get('host')}`;
 }
 
 // =========================================================================
@@ -423,7 +425,7 @@ app.get(['/', '/health'], (req, res) => {
     res.json({
         status: "ok",
         name: "Locket Mod & Photobooth Backend",
-        author: "MinhHiep08",
+        author: "TranHai307",
         uptime: Math.round(process.uptime()) + "s",
         time: new Date().toISOString()
     });

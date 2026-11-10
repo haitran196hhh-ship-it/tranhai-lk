@@ -1,6 +1,6 @@
-#!name=Locket_Gold_TranHai
-#!desc=Mở khóa Locket Gold (Anti-Cache 304), Tính năng 45s & Huy hiệu Profile VIP.
-#!author=TranHai
+#!name=Locket Gold VIP (Bản Riêng Lẻ)
+#!desc=Mở khóa Locket Gold, Anti-Cache 304, Full Khung Photobooth & AI Filter bởi TranHai307
+#!author=TranHai307
 #!system=ios
 
 [Rule]
@@ -19,13 +19,11 @@ DOMAIN-SUFFIX,ingest.sentry.io,REJECT
 ^https?:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers) header-del If-None-Match
 ^https?:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers) header-del if-modified-since
 ^https?:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers) header-del If-Modified-Since
-
-^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del if-none-match
-^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del If-None-Match
-^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del if-modified-since
-^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del If-Modified-Since
-^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+ header-del x-goog-if-none-match
-
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+ header-del if-none-match
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+ header-del If-None-Match
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+ header-del if-modified-since
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+ header-del If-Modified-Since
+^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+ header-del x-goog-if-none-match
 ^https?:\/\/api\.locketcamera\.com\/.+ header-del if-none-match
 ^https?:\/\/api\.locketcamera\.com\/.+ header-del If-None-Match
 ^https?:\/\/api\.locketcamera\.com\/.+ header-del if-modified-since
@@ -33,16 +31,14 @@ DOMAIN-SUFFIX,ingest.sentry.io,REJECT
 
 [Script]
 deleteHeader_RC = type=http-request,pattern=^https?:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers),script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/deleteHeader.js,timeout=60
-deleteHeader_Firebase = type=http-request,pattern=^https?:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/deleteHeader.js,timeout=60
-
+deleteHeader_Firebase = type=http-request,pattern=^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/deleteHeader.js,timeout=60
 revenuecat = type=http-response,pattern=^https?:\/\/api\.revenuecat\.com\/.+\/(receipts|subscribers),script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/Locket_minhhiep08.js,requires-body=true,max-size=-1,timeout=60
-locket_rc = type=http-response,pattern=^https:\/\/firebaseremoteconfig\.googleapis\.com\/v1\/projects\/locket-4252a\/.+,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/Locket_Unlocked.js?v=20261108_09,requires-body=true,max-size=-1,timeout=60
-
-locket_change_profile = type=http-request,pattern=^https:\/\/api\.locketcamera\.com\/changeProfileInfo,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/locket_filter_unlock.js?v=20261108_09,timeout=60
-locket_filter_resp = type=http-response,pattern=^https?:\/\/api\.locketcamera\.com\/.+,requires-body=true,max-size=-1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/locket_filter_unlock.js?v=20261108_09,timeout=60
+locket_rc = type=http-response,pattern=^https?:\/\/firebaseremoteconfig\.googleapis\.com\/.+,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/Locket_Unlocked.js,requires-body=true,max-size=-1,timeout=60
+locket_pb_req = type=http-request,pattern=^https?:\/\/(us-central1-locket-4252a\.cloudfunctions\.net|api\.locketcamera\.com)\/generateFilteredImage,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/Locket_Photobooth.js,requires-body=true,max-size=-1,timeout=60
+locket_filter_resp = type=http-response,pattern=^https?:\/\/api\.locketcamera\.com\/.+,requires-body=true,max-size=-1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/locket_filter_unlock.js,timeout=60
 
 [Host]
 firebaseremoteconfigrealtime.googleapis.com = 0.0.0.0
 
 [MITM]
-hostname = %APPEND% api.revenuecat.com, firebaseremoteconfig.googleapis.com, api.locketcamera.com, *.locketcamera.com
+hostname = %APPEND% api.revenuecat.com, firebaseremoteconfig.googleapis.com, api.locketcamera.com, *.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net

@@ -1,12 +1,10 @@
-#!name=Meitu VIP
-#!desc=Mở khóa VIP Meitu XiuXiu & Wink
-#!author=MinhHiep08
+#!name=Meitu XiuXiu & Wink VIP
+#!desc=Mở khóa tính năng VIP Meitu & Wink bởi TranHai307
+#!author=TranHai307
 #!system=ios
-#!url=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//modules/Meitu.sgmodule
-#!====================================
-
-[MITM]
-hostname = %APPEND%, *.xiuxiu.meitu.com, api-sub.meitu.com, meitudata.com, meitu.com
 
 [Script]
-Meitu = type=http-response,pattern=^https?:\/\/([^/]+\.)?meitu\.com\/.*/(vip|user|account|h5)\/?,requires-body=1,max-size=-1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//js/MeiTuXiuXiu.js
+meitu_vip = type=http-response,pattern=^https?:\/\/api\.xiuxiu\.meitu\.com\/.+\/user\/vip_info,requires-body=1,max-size=-1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/MeiTuXiuXiu.js
+
+[MITM]
+hostname = %APPEND% *.meitu.com, *.wink.com

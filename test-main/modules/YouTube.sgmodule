@@ -1,15 +1,15 @@
-#!name=YouTube (Music) Enhance VIP
-#!desc=Mở khóa YouTube & YouTube Music Premium, chặn sạch quảng cáo, phát trong nền, PiP (Giữ nguyên nút Upload +). Bản quyền độc quyền bởi MinhHiep08 (@minhhiep07)
-#!author=MinhHiep08 (@minhhiep07)
-#!icon=https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png
+#!name=YouTube Premium & Music VIP
+#!desc=Chặn quảng cáo, phát nền PiP, dịch phụ đề bởi TranHai307
+#!author=TranHai307
 #!system=ios
-#!arguments=屏蔽上传按钮:false,屏蔽选段按钮:true,屏蔽Shorts按钮:false,字幕翻译语言:off,启用调试模式:false
-#!arguments-desc=- Ẩn nút Upload (+): [true, false] (Mặc định: false để giữ nút Upload)\n- Ẩn nút chọn đoạn nhạc: [true, false]\n- Ẩn nút Shorts: [true, false]\n- Dịch phụ đề: [vi, en, off]\n- Bật Debug: [true, false]
+
+[Rule]
+AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT
 
 [Script]
-youtube.response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//js/youtube.response.js,argument="{"captionLang":"{{{字幕翻译语言}}}","blockUpload":{{{屏蔽上传按钮}}},"blockImmersive":{{{屏蔽选段按钮}}},"blockShorts":{{{屏蔽Shorts按钮}}},"debug":{{{启用调试模式}}}}"
-youtube.request.init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//js/youtube.request.js,argument="{"captionLang":"{{{字幕翻译语言}}}"}"
-youtube.request.log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev//js/youtube.request.js
+youtube.response = type=http-response,pattern=^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/youtube.response.js
+youtube.request.init = type=http-request,pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/youtube.request.js
+youtube.request.log_event = type=http-request,pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event,requires-body=1,max-size=-1,binary-body-mode=1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/youtube.request.js
 
 [MITM]
 hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com
