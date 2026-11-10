@@ -70,5 +70,5 @@ spotify-proto = type=http-response,pattern=^https:\/\/(spclient\.wg\.spotify\.co
 firebaseremoteconfigrealtime.googleapis.com = 0.0.0.0
 
 [MITM]
-hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com, api.revenuecat.com, firebaseremoteconfig.googleapis.com, spclient.wg.spotify.com, *spclient.spotify.com, api.locketcamera.com, *.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net, odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev, tranhai-lk.onrender.com
+hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com, api.revenuecat.com, firebaseremoteconfig.googleapis.com, spclient.wg.spotify.com, *spclient.spotify.com, api.locketcamera.com, *.locketcamera.com, gateway.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net, odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev, tranhai-lk.onrender.com
 
