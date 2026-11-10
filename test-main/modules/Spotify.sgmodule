@@ -1,4 +1,4 @@
-#!name=Spotify Premium VIP
+﻿#!name=Spotify Premium VIP
 #!desc=Mở khóa chọn bài tự do, tắt trộn bài bắt buộc bởi TranHai307
 #!author=TranHai307
 #!system=ios
@@ -14,8 +14,8 @@ AND,((DOMAIN-SUFFIX,spclient.wg.spotify.com),(PROTOCOL,UDP)),REJECT
 ^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(user-customization-service\/v1\/customize|bootstrap\/v1\/bootstrap) header-del If-Modified-Since
 
 [Script]
-spotify-json = type=http-request,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(artistview\/v1\/artist|album-entity-view\/v2\/album)\/,requires-body=0,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/spotify-json.js
-spotify-proto = type=http-response,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(bootstrap\/v1\/bootstrap|user-customization-service\/v1\/customize),requires-body=1,binary-body-mode=1,max-size=-1,script-path=https://odd-bar-7839locket-vip-tranhai.haitran196hhh.workers.dev/js/spotify-proto.js
+spotify-json = type=http-request,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(artistview\/v1\/artist|album-entity-view\/v2\/album)\/,requires-body=0,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/spotify-json.js
+spotify-proto = type=http-response,pattern=^https:\/\/(spclient\.wg\.spotify\.com|.*-spclient\.spotify\.com(?::443)?)\/(bootstrap\/v1\/bootstrap|user-customization-service\/v1\/customize),requires-body=1,binary-body-mode=1,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/spotify-proto.js
 
 [MITM]
 hostname = %APPEND% spclient.wg.spotify.com, *spclient.spotify.com
