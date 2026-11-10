@@ -10,7 +10,7 @@ let body = $request.body;
 
 // ⚠️ QUAN TRỌNG: Thay đường link này bằng link web Render của riêng anh (nếu có). 
 // Hiện tại đang để mặc định là máy chủ mượn của cộng đồng.
-const RENDER_BACKEND_URL = "https://locket-mod-backend.onrender.com/generateFilteredImage";
+const RENDER_BACKEND_URL = "https://tranhai-lk.onrender.com/generateFilteredImage";
 
 // Nếu phát hiện Locket đang gửi yêu cầu tạo ảnh AI
 if (url.includes("/generateFilteredImage")) {
