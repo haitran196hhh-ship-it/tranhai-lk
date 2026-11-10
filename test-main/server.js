@@ -1,7 +1,7 @@
 /**
- * Locket Mod & Photobooth 4-Shot Backend Server
- * Chuyên xử lý đồ họa, ghép khung, ghép 4 ô Photobooth & lưu trữ ảnh cho Locket iOS
- * Triển khai miễn phí trên Render.com
+ * Locket Mod, AI Filter & Photobooth Full Backend Server
+ * Author: TranHai307
+ * Hỗ trợ: Quét toàn bộ assets/frames, assets/img, assets/stickers và 5 tệp data/*.json
  */
 
 const express = require('express');
@@ -14,30 +14,53 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Đảm bảo thư mục lưu ảnh tồn tại
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
 const ASSETS_DIR = path.join(__dirname, 'assets');
+const DATA_DIR = path.join(__dirname, 'data');
 
 if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
-// Tải 60 prompt AI chi tiết từ data/ai_prompts.json
+// 1. TẢI VÀ HỢP NHẤT TOÀN BỘ 5 FILE PROMPT AI TRONG THƯ MỤC data/
 let AI_PROMPTS = {};
-try {
-    const promptsFile = path.join(__dirname, 'data', 'ai_prompts.json');
-    if (fs.existsSync(promptsFile)) {
-        AI_PROMPTS = JSON.parse(fs.readFileSync(promptsFile, 'utf8'));
+const promptFiles = [
+    'locket_all_ai_prompts.json',
+    'matched_ai_prompts.json',
+    'js_ai_prompts.json',
+    'embedded.json',
+    'ai_prompts.json'
+];
+
+for (const file of promptFiles) {
+    try {
+        const fullPath = path.join(DATA_DIR, file);
+        if (fs.existsSync(fullPath)) {
+            const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                for (const [k, v] of Object.entries(parsed)) {
+                    if (typeof v === 'string' && v.trim()) {
+                        AI_PROMPTS[k] = v.trim();
+                        AI_PROMPTS[k.toLowerCase()] = v.trim();
+                    } else if (v && typeof v === 'object' && (v.prompt || v.text)) {
+                        const pText = String(v.prompt || v.text).trim();
+                        AI_PROMPTS[k] = pText;
+                        AI_PROMPTS[k.toLowerCase()] = pText;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error(`Không thể đọc file ${file}:`, e.message);
     }
-} catch (e) {
-    console.error("Could not load ai_prompts.json:", e);
 }
+console.log(`Đã nạp tổng cộng ${Object.keys(AI_PROMPTS).length} khóa Prompt AI từ thư mục data/`);
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Bộ nhớ ghi log 50 request gần nhất để chẩn đoán
+// Bộ nhớ ghi log 50 request gần nhất để kiểm tra lỗi trực tiếp
 const requestLogs = [];
 function addLog(type, details) {
     requestLogs.unshift({
@@ -54,7 +77,7 @@ app.use((req, res, next) => {
             method: req.method,
             url: req.url,
             ip: req.ip,
-            body: req.body
+            bodyKeys: req.body ? Object.keys(req.body) : []
         });
     }
     next();
@@ -64,32 +87,34 @@ app.get('/api/logs', (req, res) => {
     res.json({ count: requestLogs.length, logs: requestLogs });
 });
 
-// Phục vụ ảnh tĩnh công khai
 app.use('/images', express.static(IMAGES_DIR, { maxAge: '1d' }));
 app.use('/assets', express.static(ASSETS_DIR, { maxAge: '1d' }));
 app.use(express.static(PUBLIC_DIR));
 
-// Bộ nhớ đệm phiên chụp Photobooth 4 ô (In-Memory Session Store)
 const pbSessions = new Map();
 
-// Bảng ánh xạ Frame File trong assets/frames/
+// 2. BẢNG ÁNH XẠ ĐẦY ĐỦ KHUNG PHOTOBOOTH & KHUNG ĐƠN (assets/frames, assets/img, assets/)
 const FRAME_MAP = {
-    // Photobooth 4-cut
+    // Photobooth 4-cut, 3-cut, 2-cut
     "pb_strawberry": "pb_strawberry.png",
     "frame_berry_days": "pb_strawberry.png",
-    "photobooth_berry_days": "pb_strawberry.png",
+    "photobooth_berry_days": "photobooth_berry_days.png",
+    "photobooth_berry_days_full": "photobooth_berry_days_full.png",
     "pb_vintage": "pb_vintage.png",
     "frame_happy_snap": "pb_vintage.png",
     "photobooth_happy_snap": "pb_vintage.png",
     "pb_galaxy": "pb_galaxy.png",
     "frame_sky_diary": "pb_galaxy.png",
-    "photobooth_sky_diary": "pb_galaxy.png",
+    "photobooth_sky_diary": "photobooth_sky_diary.png",
     "pb_holo_4cut": "pb_holo_4cut.png",
     "pb_scrapbook_ripped_4cut": "pb_scrapbook_ripped_4cut.png",
     "pb_ripped_paper_4cut": "pb_ripped_paper_4cut.png",
     "pb_denim_ripped_2x2": "pb_denim_ripped_2x2.png",
     "frame_classic_pb": "photoboot.png",
     "photoboot": "photoboot.png",
+    "photobooth_1": "photobooth_1.png",
+    "photobooth_2": "photobooth_2.png",
+    "photobooth_3": "photobooth_3.png",
     "photobooth_cute": "photobooth_cute.png",
     "photobooth_4cut": "photobooth_4cut.png",
     "photobooth_film": "photobooth_film.png",
@@ -121,7 +146,7 @@ const FRAME_MAP = {
     "khung_tet_be_ran_li_xi": "khung_tet_be_ran_li_xi.png",
     "khung_tet_meo_than_tai": "khung_tet_meo_than_tai.png",
 
-    // Khung đơn (Single Frames)
+    // Khung đơn trong assets/frames, assets/img và assets/
     "pb_single_denim_ripped": "pb_single_denim_ripped.png",
     "pb_single_film_nostalgia": "pb_single_film_nostalgia.png",
     "pb_single_y2k_silver_holo": "pb_single_y2k_silver_holo.png",
@@ -138,10 +163,22 @@ const FRAME_MAP = {
     "khung_vu_ng_ng_i_sao_h_ng_pastel": "khung_vu_ng_ng_i_sao_h_ng_pastel.png",
     "khung_xanh_v_tay_sao_v_ng": "khung_xanh_v_tay_sao_v_ng.png",
     "sinh_nh_t_hello_kitty_ho_i_c": "sinh_nh_t_hello_kitty_ho_i_c.png",
-    "sticker_b_nh_lu_n_minh_tu": "sticker_b_nh_lu_n_minh_tu.png"
+    "sticker_b_nh_lu_n_minh_tu": "sticker_b_nh_lu_n_minh_tu.png",
+    "custom_frame": "custom_frame.png",
+    "custom_frame_640": "custom_frame_640.png",
+    "custom_frame_v2": "custom_frame_v2.png",
+    "frame_mon_640": "frame_mon_640.png",
+    "frame_tue_640": "frame_tue_640.png",
+    "frame_wed_640": "frame_wed_640.png",
+    "frame_thu_640": "frame_thu_640.png",
+    "frame_fri_640": "frame_fri_640.png",
+    "frame_sat_640": "frame_sat_640.png",
+    "frame_sun_640": "frame_sun_640.png",
+    "crimson_mecha_gold": "crimson_mecha_gold_frame_clean_1024x1024.png",
+    "cyber_valkyrie_violet": "cyber_valkyrie_violet_frame_ios_1024x1024.png"
 };
 
-// Bảng layout tùy biến cho các khung Photobooth đặc thù (vị trí & kích thước từng ô)
+// 3. BẢNG BỐ CỤC TỌA ĐỘ TỪNG Ô CHO CÁC KHUNG PHOTOBOOTH ĐẶC THÙ
 const CUSTOM_PB_LAYOUTS = {
     "pb_lunar_newyear_4cut": {
         width: 1080, height: 1080,
@@ -187,146 +224,23 @@ const CUSTOM_PB_LAYOUTS = {
             { left: 120, top: 555, width: 440, height: 430 },
             { left: 555, top: 555, width: 440, height: 430 }
         ]
-    },
-    "pb_long_phung_1": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_2": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_3": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_5": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_6": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_7": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
-    },
-    "pb_long_phung_9": {
-        width: 1080, height: 1080,
-        slots: [
-            { left: 0,   top: 0,   width: 545, height: 545 },
-            { left: 535, top: 0,   width: 545, height: 545 },
-            { left: 0,   top: 535, width: 545, height: 545 },
-            { left: 535, top: 535, width: 545, height: 545 }
-        ]
     }
 };
 
-// Tính số bước chụp của bộ lọc Photobooth (2 ô, 3 ô hoặc 4 ô)
-function getPhotoboothTotalSteps(fid) {
-    if (!fid) return 4;
-    const lower = String(fid).toLowerCase();
-    if (lower.includes("2cut") || lower.includes("2_cut") || lower.includes("2x1") || lower.includes("2_shot")) return 2;
-    if (lower.includes("3cut") || lower.includes("3_cut") || lower.includes("3x1") || lower.includes("3_shot")) return 3;
-    return 4;
-}
+// Tự động thêm cấu hình 4 ô vuông cho toàn bộ dòng pb_long_phung_1 -> 9
+["1", "2", "3", "5", "6", "7", "9"].forEach(num => {
+    CUSTOM_PB_LAYOUTS[`pb_long_phung_${num}`] = {
+        width: 1080, height: 1080,
+        slots: [
+            { left: 0,   top: 0,   width: 545, height: 545 },
+            { left: 535, top: 0,   width: 545, height: 545 },
+            { left: 0,   top: 535, width: 545, height: 545 },
+            { left: 535, top: 535, width: 545, height: 545 }
+        ]
+    };
+});
 
-function getPhotoboothCardUrl(stepNum, totalSteps, baseUrl) {
-    let filename;
-    if (totalSteps === 2) {
-        filename = stepNum === 2 ? "pb_2cut_step2.jpg" : "pb_2cut_step1.jpg";
-    } else if (totalSteps === 3) {
-        filename = stepNum === 3 ? "pb_3cut_step3.jpg" : (stepNum === 2 ? "pb_3cut_step2.jpg" : "pb_3cut_step1.jpg");
-    } else {
-        filename = `pb_step${stepNum}.jpg`;
-    }
-    return `${baseUrl}/assets/img/${filename}`;
-}
-
-// Kiểm tra bộ lọc Photobooth nhiều ô (2 cut, 3 cut, 4 cut)
-function isPhotoboothFilter(fid) {
-    if (!fid) return false;
-    const lower = String(fid).toLowerCase();
-    if (lower.startsWith("pb_single_") || lower.startsWith("khung_")) return false;
-    return /photobooth|pb_|frame_|4cut|3cut|2cut|cute|berry_days|happy_snap|sky_diary|photoboot|classic_pb|xmas/i.test(lower);
-}
-
-// Kiểm tra khung đơn 1 lượt chụp
-function isOverlayFrameFilter(fid) {
-    if (!fid) return false;
-    if (isPhotoboothFilter(fid)) return false;
-    const lower = String(fid).toLowerCase();
-    return /^khung_|^frame_|pb_single_|cmt_locket|custom_frame|sinh_nh_t|sticker_b_nh_lu_n/i.test(lower);
-}
-
-// Tải ảnh từ URL về Buffer (hỗ trợ HTTP URL, Data URL Base64, và Base64 thuần)
-async function fetchImageBuffer(url) {
-    if (!url) return null;
-    if (Buffer.isBuffer(url)) return url;
-    if (typeof url === 'string') {
-        const trimmed = url.trim();
-        if (trimmed.startsWith('data:')) {
-            const base64Data = trimmed.split(',')[1] || trimmed;
-            return Buffer.from(base64Data, 'base64');
-        }
-        if (/^[A-Za-z0-9+/=]{100,}$/.test(trimmed)) {
-            return Buffer.from(trimmed, 'base64');
-        }
-    }
-    const res = await axios.get(url, {
-        responseType: 'arraybuffer',
-        timeout: 25000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X)' }
-    });
-    return Buffer.from(res.data);
-}
-
-// Tìm đường dẫn file khung PNG
-function resolveFramePath(fid) {
-    const clean = String(fid).toLowerCase().replace(/^stk_/, "");
-    const filename = FRAME_MAP[clean] || FRAME_MAP[fid] || `${clean}.png`;
-    const framePath = path.join(ASSETS_DIR, 'frames', filename);
-    if (fs.existsSync(framePath)) return framePath;
-
-    // Tìm trong assets/img
-    const imgPath = path.join(ASSETS_DIR, 'img', filename);
-    if (fs.existsSync(imgPath)) return imgPath;
-
-    return null;
-}
-
-// Bảng ánh xạ Sticker File trong assets/stickers/
+// 4. BẢNG ÁNH XẠ STICKER TRONG assets/stickers/
 const STICKER_MAP = {
     'okay_wig': 'stk_dio_orange_wig.png',
     'disco_lights': 'stk_dio_disco.png',
@@ -361,10 +275,80 @@ const STICKER_MAP = {
     'leprechaun': 'stk_dio_leprechaun.png',
     'lucky_face': 'stk_dio_lucky_face.png',
     'frosty': 'stk_dio_frosty.png',
-    'influencer': 'stk_dio_influencer.png'
+    'influencer': 'stk_dio_influencer.png',
+    'christmas_bell': 'stk_christmas_bell.png',
+    'cute_zombie': 'stk_cute_zombie.png'
 };
 
-// Tìm đường dẫn sticker PNG
+function getPhotoboothTotalSteps(fid) {
+    if (!fid) return 4;
+    const lower = String(fid).toLowerCase();
+    if (lower.includes("2cut") || lower.includes("2_cut") || lower.includes("2x1") || lower.includes("2_shot")) return 2;
+    if (lower.includes("3cut") || lower.includes("3_cut") || lower.includes("3x1") || lower.includes("3_shot")) return 3;
+    return 4;
+}
+
+function getPhotoboothCardUrl(stepNum, totalSteps, baseUrl) {
+    let filename;
+    if (totalSteps === 2) {
+        filename = stepNum === 2 ? "pb_2cut_step2.jpg" : "pb_2cut_step1.jpg";
+    } else if (totalSteps === 3) {
+        filename = stepNum === 3 ? "pb_3cut_step3.jpg" : (stepNum === 2 ? "pb_3cut_step2.jpg" : "pb_3cut_step1.jpg");
+    } else {
+        filename = `pb_step${stepNum}.jpg`;
+    }
+    return `${baseUrl}/assets/img/${filename}`;
+}
+
+function isPhotoboothFilter(fid) {
+    if (!fid) return false;
+    const lower = String(fid).toLowerCase();
+    if (lower.startsWith("pb_single_") || lower.startsWith("khung_") || lower.startsWith("custom_frame") || lower.includes("_640")) return false;
+    return /photobooth|pb_|4cut|3cut|2cut|berry_days|happy_snap|sky_diary|photoboot|classic_pb|xmas/i.test(lower);
+}
+
+function isOverlayFrameFilter(fid) {
+    if (!fid) return false;
+    if (isPhotoboothFilter(fid)) return false;
+    const lower = String(fid).toLowerCase();
+    return /^khung_|^frame_|pb_single_|cmt_locket|custom_frame|sinh_nh_t|sticker_b_nh_lu_n|crimson_mecha|cyber_valkyrie/i.test(lower);
+}
+
+async function fetchImageBuffer(url) {
+    if (!url) return null;
+    if (Buffer.isBuffer(url)) return url;
+    if (typeof url === 'string') {
+        const trimmed = url.trim();
+        if (trimmed.startsWith('data:')) {
+            const base64Data = trimmed.split(',')[1] || trimmed;
+            return Buffer.from(base64Data, 'base64');
+        }
+        if (/^[A-Za-z0-9+/=]{100,}$/.test(trimmed)) {
+            return Buffer.from(trimmed, 'base64');
+        }
+    }
+    const res = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 25000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X)' }
+    });
+    return Buffer.from(res.data);
+}
+
+function resolveFramePath(fid) {
+    const clean = String(fid).toLowerCase().replace(/^stk_/, "");
+    const filename = FRAME_MAP[clean] || FRAME_MAP[fid] || `${clean}.png`;
+    const searchDirs = [
+        path.join(ASSETS_DIR, 'frames', filename),
+        path.join(ASSETS_DIR, 'img', filename),
+        path.join(ASSETS_DIR, filename)
+    ];
+    for (const p of searchDirs) {
+        if (fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
 function resolveStickerPath(fid) {
     if (!fid) return null;
     const clean = String(fid).toLowerCase().trim();
@@ -387,7 +371,6 @@ function resolveStickerPath(fid) {
     return null;
 }
 
-// Helper chuẩn hóa phản hồi chuẩn Firebase Callable Functions cho Locket App
 function formatLocketResponse(outputUrl, extra = {}) {
     return {
         result: {
@@ -410,69 +393,74 @@ function formatLocketResponse(outputUrl, extra = {}) {
     };
 }
 
-// Tự động lấy đúng địa chỉ máy chủ đang chạy (Laptop hoặc Render)
 function getBaseUrl(req) {
     if (req.get('x-public-base')) return req.get('x-public-base').replace(/\/+$/, "");
     if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
-    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     return `${proto}://${req.get('host')}`;
 }
 
-// =========================================================================
-// ROUTE KIỂM TRA TRẠNG THÁI (HEALTH CHECK)
-// =========================================================================
 app.get(['/', '/health'], (req, res) => {
     res.json({
         status: "ok",
         name: "Locket Mod & Photobooth Backend",
         author: "TranHai307",
+        promptsLoaded: Object.keys(AI_PROMPTS).length,
+        framesMapped: Object.keys(FRAME_MAP).length,
+        stickersMapped: Object.keys(STICKER_MAP).length,
         uptime: Math.round(process.uptime()) + "s",
         time: new Date().toISOString()
     });
 });
 
-// =========================================================================
-// 1. ROUTE CHÍNH: /generateFilteredImage (TIẾP NHẬN & MOD ẢNH CHO LOCKET)
-// =========================================================================
+// API liệt kê toàn bộ danh sách file trong assets và data để kiểm tra
+app.get('/api/catalog', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    const listFiles = (subDir) => {
+        const dir = path.join(ASSETS_DIR, subDir);
+        if (!fs.existsSync(dir)) return [];
+        return fs.readdirSync(dir)
+            .filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f))
+            .map(f => ({ id: f.replace(/\.[^.]+$/, ''), file: f, url: `${baseUrl}/assets/${subDir}/${f}` }));
+    };
+    res.json({
+        frames: listFiles('frames'),
+        img: listFiles('img'),
+        stickers: listFiles('stickers'),
+        aiPromptIds: Object.keys(AI_PROMPTS)
+    });
+});
+
+// ROUTE XỬ LÝ CHÍNH: /generateFilteredImage
 app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, res) => {
     try {
         const body = req.body || {};
         const d = body.data || body;
         const fid = String(
             d.filter_id || d.filterId || d.prompt || d.id || req.query.filterId || req.query.filter_id || ""
-        ).toLowerCase();
+        ).toLowerCase().trim();
         const imgUrl = String(
             d.imageUrl || d.image_url || d.url || (d.image && d.image.url) || req.query.imageUrl || req.query.url || ""
-        );
+        ).trim();
 
         if (!imgUrl) {
-            addLog("WARN", { message: "Missing imageUrl, returning empty result", body });
+            addLog("WARN", { message: "Missing imageUrl", body });
             return res.status(200).json(formatLocketResponse(""));
         }
 
         const baseUrl = getBaseUrl(req);
-
-        // Định danh thiết bị độc lập để phân tách phiên chụp Photobooth chuẩn xác 100%
         let rawClientId = "";
         if (d.user_id || d.uid) {
             rawClientId = String(d.user_id || d.uid);
         } else if (d.analytics && d.analytics.installation_id) {
             rawClientId = String(d.analytics.installation_id);
-        } else if (d.analytics && d.analytics.amplitude && d.analytics.amplitude.device_id) {
-            rawClientId = String(d.analytics.amplitude.device_id);
         } else {
             const matchUid = imgUrl.match(/filter_inputs%2F([a-zA-Z0-9_-]+)%2F/i);
-            if (matchUid && matchUid[1]) {
-                rawClientId = matchUid[1];
-            } else {
-                rawClientId = String(req.ip || "user_default");
-            }
+            rawClientId = (matchUid && matchUid[1]) ? matchUid[1] : String(req.ip || "user_default");
         }
         const clientId = rawClientId.replace(/[^a-zA-Z0-9_-]/g, "");
 
-        // -------------------------------------------------------------
-        // TRƯỜNG HỢP A: PHOTOBOOTH NHIỀU Ô (2 CUT, 3 CUT, HOẶC 4 CUT)
-        // -------------------------------------------------------------
+        // A. PHOTOBOOTH NHIỀU Ô (2-CUT, 3-CUT, 4-CUT)
         if (isPhotoboothFilter(fid)) {
             const totalSteps = getPhotoboothTotalSteps(fid);
             const sessionKey = `${clientId}_${fid}`;
@@ -488,20 +476,16 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             session.lastTime = now;
 
             if (currentStep < totalSteps) {
-                // Chưa đủ số ảnh: Chuẩn bị bước kế tiếp và trả về thẻ thông báo
                 session.step = currentStep + 1;
                 pbSessions.set(sessionKey, session);
-
                 const cardUrl = getPhotoboothCardUrl(currentStep, totalSteps, baseUrl);
-                addLog("RESPONSE", { filter_id: fid, step: currentStep, nextStep: currentStep + 1, totalSteps, outputUrl: cardUrl });
+                addLog("PB_STEP", { fid, step: currentStep, totalSteps, cardUrl });
                 return res.json(formatLocketResponse(cardUrl, { step: currentStep, nextStep: currentStep + 1, totalSteps }));
             }
 
-            // ĐỦ ẢNH (BƯỚC HOÀN TẤT): TIẾN HÀNH GHÉP ẢNH PHOTOBOOTH BẰNG SHARP NATIVE
-            session.step = 1; // Reset cho lượt chơi kế tiếp
+            session.step = 1;
             pbSessions.set(sessionKey, session);
 
-            // Tìm file khung Photobooth PNG
             const customLayout = CUSTOM_PB_LAYOUTS[fid];
             const canvasWidth = customLayout ? customLayout.width : 1254;
             const canvasHeight = customLayout ? customLayout.height : 1254;
@@ -514,7 +498,6 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
 
             let compositeList = [];
 
-            // A0. BỐ CỤC TÙY BIẾN THEO TỪNG KHUNG PHOTOBOOTH (CUSTOM LAYOUT)
             if (customLayout) {
                 const imgUrls = [
                     session.images[0] || imgUrl,
@@ -533,14 +516,10 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                         compositeList.push({ input: crop, left: slot.left, top: slot.top });
                     }
                 }
-            }
-            // A1. BỐ CỤC 2-CUT (pb_xmas_2cut)
-            else if (totalSteps === 2) {
-                const img1Url = session.images[0] || imgUrl;
-                const img2Url = imgUrl;
+            } else if (totalSteps === 2) {
                 const [b1, b2] = await Promise.all([
-                    fetchImageBuffer(img1Url).catch(() => null),
-                    fetchImageBuffer(img2Url).catch(() => null)
+                    fetchImageBuffer(session.images[0] || imgUrl).catch(() => null),
+                    fetchImageBuffer(imgUrl).catch(() => null)
                 ]);
                 const crop1 = await sharp(b1 || b2).resize(1000, 440, { fit: 'cover' }).toBuffer();
                 const crop2 = await sharp(b2 || b1).resize(1000, 530, { fit: 'cover' }).toBuffer();
@@ -548,16 +527,11 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                     { input: crop1, left: 125, top: 195 },
                     { input: crop2, left: 125, top: 640 }
                 ];
-            }
-            // A2. BỐ CỤC 3-CUT (pb_xmas_3cut)
-            else if (totalSteps === 3) {
-                const img1Url = session.images[0] || imgUrl;
-                const img2Url = session.images[1] || imgUrl;
-                const img3Url = imgUrl;
+            } else if (totalSteps === 3) {
                 const [b1, b2, b3] = await Promise.all([
-                    fetchImageBuffer(img1Url).catch(() => null),
-                    fetchImageBuffer(img2Url).catch(() => null),
-                    fetchImageBuffer(img3Url).catch(() => null)
+                    fetchImageBuffer(session.images[0] || imgUrl).catch(() => null),
+                    fetchImageBuffer(session.images[1] || imgUrl).catch(() => null),
+                    fetchImageBuffer(imgUrl).catch(() => null)
                 ]);
                 const crop1 = await sharp(b1 || b3).resize(1000, 440, { fit: 'cover' }).toBuffer();
                 const crop2 = await sharp(b2 || b3).resize(480, 530, { fit: 'cover' }).toBuffer();
@@ -567,33 +541,20 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                     { input: crop2, left: 125, top: 640 },
                     { input: crop3, left: 648, top: 640 }
                 ];
-            }
-            // A3. BỐ CỤC 4-CUT (pb_xmas_4cut, pb_tet_4cut, photobooth_4cut, v.v.)
-            else {
-                const img1Url = session.images[0] || imgUrl;
-                const img2Url = session.images[1] || imgUrl;
-                const img3Url = session.images[2] || imgUrl;
-                const img4Url = imgUrl;
-
+            } else {
                 const [b1, b2, b3, b4] = await Promise.all([
-                    fetchImageBuffer(img1Url).catch(() => null),
-                    fetchImageBuffer(img2Url).catch(() => null),
-                    fetchImageBuffer(img3Url).catch(() => null),
-                    fetchImageBuffer(img4Url).catch(() => null)
+                    fetchImageBuffer(session.images[0] || imgUrl).catch(() => null),
+                    fetchImageBuffer(session.images[1] || imgUrl).catch(() => null),
+                    fetchImageBuffer(session.images[2] || imgUrl).catch(() => null),
+                    fetchImageBuffer(imgUrl).catch(() => null)
                 ]);
-
-                const fallbackBuf = b1 || b4;
-                const buf1 = b1 || fallbackBuf;
-                const buf2 = b2 || fallbackBuf;
-                const buf3 = b3 || fallbackBuf;
-                const buf4 = b4 || fallbackBuf;
-
+                const fb = b1 || b4;
                 if (fid.includes("xmas") || fid.includes("tet")) {
                     const [c1, c2, c3, c4] = await Promise.all([
-                        sharp(buf1).resize(480, 450, { fit: 'cover' }).toBuffer(),
-                        sharp(buf2).resize(480, 450, { fit: 'cover' }).toBuffer(),
-                        sharp(buf3).resize(480, 540, { fit: 'cover' }).toBuffer(),
-                        sharp(buf4).resize(480, 540, { fit: 'cover' }).toBuffer()
+                        sharp(b1 || fb).resize(480, 450, { fit: 'cover' }).toBuffer(),
+                        sharp(b2 || fb).resize(480, 450, { fit: 'cover' }).toBuffer(),
+                        sharp(b3 || fb).resize(480, 540, { fit: 'cover' }).toBuffer(),
+                        sharp(b4 || fb).resize(480, 540, { fit: 'cover' }).toBuffer()
                     ]);
                     compositeList = [
                         { input: c1, left: 125, top: 180 },
@@ -602,24 +563,22 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                         { input: c4, left: 648, top: 630 }
                     ];
                 } else {
-                    const [crop1, crop2, crop3, crop4] = await Promise.all([
-                        sharp(buf1).resize(542, 542, { fit: 'cover' }).toBuffer(),
-                        sharp(buf2).resize(542, 542, { fit: 'cover' }).toBuffer(),
-                        sharp(buf3).resize(542, 542, { fit: 'cover' }).toBuffer(),
-                        sharp(buf4).resize(542, 542, { fit: 'cover' }).toBuffer()
+                    const [c1, c2, c3, c4] = await Promise.all([
+                        sharp(b1 || fb).resize(542, 542, { fit: 'cover' }).toBuffer(),
+                        sharp(b2 || fb).resize(542, 542, { fit: 'cover' }).toBuffer(),
+                        sharp(b3 || fb).resize(542, 542, { fit: 'cover' }).toBuffer(),
+                        sharp(b4 || fb).resize(542, 542, { fit: 'cover' }).toBuffer()
                     ]);
                     compositeList = [
-                        { input: crop1, left: 65, top: 65 },
-                        { input: crop2, left: 647, top: 65 },
-                        { input: crop3, left: 65, top: 647 },
-                        { input: crop4, left: 647, top: 647 }
+                        { input: c1, left: 65, top: 65 },
+                        { input: c2, left: 647, top: 65 },
+                        { input: c3, left: 65, top: 647 },
+                        { input: c4, left: 647, top: 647 }
                     ];
                 }
             }
 
-            if (frameBuffer) {
-                compositeList.push({ input: frameBuffer, left: 0, top: 0 });
-            }
+            if (frameBuffer) compositeList.push({ input: frameBuffer, left: 0, top: 0 });
 
             const fileName = `pb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
             const outPath = path.join(IMAGES_DIR, fileName);
@@ -637,13 +596,11 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             .toFile(outPath);
 
             const finalUrl = `${baseUrl}/images/${fileName}`;
-            addLog("RESPONSE", { filter_id: fid, step: totalSteps, outputUrl: finalUrl, type: `photobooth_${totalSteps}cut` });
+            addLog("RESPONSE", { fid, type: "photobooth", outputUrl: finalUrl });
             return res.json(formatLocketResponse(finalUrl, { type: `photobooth_${totalSteps}cut`, completed: true }));
         }
 
-        // -------------------------------------------------------------
-        // TRƯỜNG HỢP B: KHUNG ĐƠN (LỒNG KHUNG PNG LÊN ẢNH GỐC - 1 LƯỢT CHỤP)
-        // -------------------------------------------------------------
+        // B. KHUNG ĐƠN (SINGLE FRAME OVERLAY)
         if (isOverlayFrameFilter(fid)) {
             const framePath = resolveFramePath(fid);
             if (framePath && fs.existsSync(framePath)) {
@@ -660,180 +617,114 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                     .toFile(outPath);
 
                 const finalUrl = `${baseUrl}/images/${fileName}`;
-                addLog("RESPONSE", { filter_id: fid, outputUrl: finalUrl, type: "frame_overlay" });
+                addLog("RESPONSE", { fid, type: "frame_overlay", outputUrl: finalUrl });
                 return res.json(formatLocketResponse(finalUrl, { type: "frame_overlay" }));
             }
-
-            // Nếu không tìm thấy file khung -> trả về ảnh gốc
-            addLog("RESPONSE", { filter_id: fid, outputUrl: imgUrl, type: "frame_fallback_original" });
-            return res.json(formatLocketResponse(imgUrl));
         }
 
-        // -------------------------------------------------------------
-        // TRƯỜNG HỢP C: FILTER & STICKER AI (TẠO ẢNH THEO PROMPT TÙY CHỈNH)
-        // -------------------------------------------------------------
+        // C. HIỆU ỨNG AI (KIRA AI) + DỰ PHÒNG GHÉP STICKER 3D TRONG assets/stickers/
         const rawFid = String(d.filter_id || d.filterId || d.prompt || d.id || req.query.filterId || "").trim();
         const cleanFid = rawFid.toLowerCase();
         const mappedFid = cleanFid.replace(/^stk_/, "");
-        const promptText = AI_PROMPTS[rawFid] || AI_PROMPTS[cleanFid] || AI_PROMPTS[mappedFid] || d.prompt || "";
+        const promptText = AI_PROMPTS[rawFid] || AI_PROMPTS[cleanFid] || AI_PROMPTS[mappedFid] || "";
 
-        // 1. ƯU TIÊN SỐ 1: TẠO ẢNH AI TỪ PROMPT TRONG data/ai_prompts.json (SỬ DỤNG KIRA AI AGNES 2.1 FLASH - GIỮ KHUÔN MẶT)
         if (promptText) {
             try {
-                // Hỗ trợ prompt chi tiết đầy đủ (lên đến 3500 ký tự cho các prompt camera-lock)
                 const fullPrompt = promptText.length > 3500 ? promptText.substring(0, 3500) : promptText;
                 let aiBuf = null;
-
-                // Gọi Kira AI model agnes-image-2.1-flash với reference_images chuẩn để giữ khuôn mặt 100%
                 const KIRA_KEY = (process.env.KIRA_API_KEY || "kira_ecd52009b0fb1973434aa883da5804cc").trim();
+
                 if (KIRA_KEY) {
-                    try {
-                        let refImages = [];
-                        if (imgUrl) {
-                            try {
-                                const userBuf = await fetchImageBuffer(imgUrl);
-                                if (userBuf && userBuf.length > 0) {
-                                    // Chuẩn hóa ảnh người dùng bằng sharp thành JPEG 1024x1024 chất lượng cao
-                                    // Giúp tối ưu dung lượng Base64 gửi lên Kira AI nhanh chóng (<300KB), không bị timeout và đảm bảo chuẩn định dạng JPEG 100%
-                                    const normJpeg = await sharp(userBuf)
-                                        .resize(1024, 1024, { fit: 'cover' })
-                                        .jpeg({ quality: 90 })
-                                        .toBuffer();
+                    const userBuf = await fetchImageBuffer(imgUrl);
+                    if (userBuf && userBuf.length > 0) {
+                        const normJpeg = await sharp(userBuf)
+                            .resize(1024, 1024, { fit: 'cover' })
+                            .jpeg({ quality: 90 })
+                            .toBuffer();
 
-                                    refImages.push({
-                                        mime_type: "image/jpeg",
-                                        data: normJpeg.toString('base64')
-                                    });
-                                }
-                            } catch (bufErr) {
-                                console.error("Could not fetch user image buffer for reference:", bufErr.message);
-                            }
-                        }
-
-                        // BẢO VỆ TUYỆT ĐỐI: NẾU KHÔNG CÓ ẢNH THAM CHIẾU TỪ LOCKET -> KHÔNG ĐƯỢC PHÉP GỌI KIRA
-                        // VÌ NẾU GỌI TEXT-TO-IMAGE THUẦN, KIRA SẼ TỰ ĐỘNG VẼ RA MỘT NGƯỜI LẠ NGẪU NHIÊN!
-                        if (refImages.length === 0) {
-                            throw new Error("Không thể tải ảnh gốc từ Locket để làm reference_images, chuyển sang cơ chế ghép sticker để giữ nguyên ảnh gốc của người dùng.");
-                        }
-
-                        // Tối ưu prompt: Nếu prompt đã là mẫu chi tiết của Locket (bắt đầu bằng 'Show the persons in the photo' và đã khóa khuôn mặt/bố cục),
-                        // truyền trực tiếp nguyên bản để AI hiểu rõ nhất. Nếu là prompt ngắn, tự động bọc bộ khung khóa khuôn mặt & iPhone camera look.
                         let facePrompt = fullPrompt;
                         if (!facePrompt.includes("Keep the background, pose, framing") && !facePrompt.includes("Do not change the overall composition")) {
-                            facePrompt = `Show the persons in the photo with the exact same pose and background, but with ${fullPrompt}, captured with a modern iPhone camera look.\n\nAll enhancements and additions should remain confined strictly to the added elements. Do not alter the overall head size, face shape, facial features, eyes, smile, expression, or identity. Preserve natural skin texture, pores, and lighting so the elements integrate realistically with the environment.\n\nApply modern iPhone camera characteristics across the entire image: natural HDR, crisp facial detail, balanced highlights and shadows, and slightly vibrant but realistic colors. The additions should inherit this same processing so they feel captured in-camera.\n\nKeep the background, pose, framing, depth of field, and image quality exactly the same. Do not change the overall composition of the photo, do not add new people to the photo, only show each person in the photo one time.`;
+                            facePrompt = `Show the persons in the photo with the exact same pose and background, but with ${fullPrompt}, captured with a modern iPhone camera look. Do not alter the overall head size, face shape, facial features, eyes, smile, expression, or identity.`;
                         }
 
-                        const kPayload = {
+                        const kRes = await axios.post('https://kiraai.vn/api/v1/images/generations', {
                             model: "agnes-image-2.1-flash",
                             prompt: facePrompt,
                             aspect_ratio: "1:1",
-                            reference_images: refImages
-                        };
-
-                        const kRes = await axios.post('https://kiraai.vn/api/v1/images/generations', kPayload, {
-                            headers: {
-                                "Authorization": `Bearer ${KIRA_KEY}`,
-                                "Content-Type": "application/json"
-                            },
+                            reference_images: [{ mime_type: "image/jpeg", data: normJpeg.toString('base64') }]
+                        }, {
+                            headers: { "Authorization": `Bearer ${KIRA_KEY}`, "Content-Type": "application/json" },
                             timeout: 35000
                         });
 
                         const item = kRes.data?.data?.[0];
-                        if (item?.b64_json) {
-                            aiBuf = Buffer.from(item.b64_json, 'base64');
-                        } else if (item?.url) {
-                            aiBuf = await fetchImageBuffer(item.url);
-                        }
-                    } catch (kErr) {
-                        console.error("Kira AI generation failed, falling back to sticker overlay:", kErr.response?.data || kErr.message);
+                        if (item?.b64_json) aiBuf = Buffer.from(item.b64_json, 'base64');
+                        else if (item?.url) aiBuf = await fetchImageBuffer(item.url);
                     }
                 }
 
                 if (aiBuf && aiBuf.length > 1000) {
                     const fileName = `ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
                     const outPath = path.join(IMAGES_DIR, fileName);
-
-                    // Chuẩn hóa ảnh JPEG bằng sharp
-                    await sharp(aiBuf)
-                        .resize(1024, 1024, { fit: 'cover' })
-                        .jpeg({ quality: 92 })
-                        .toFile(outPath);
-
+                    await sharp(aiBuf).resize(1024, 1024, { fit: 'cover' }).jpeg({ quality: 92 }).toFile(outPath);
                     const finalUrl = `${baseUrl}/images/${fileName}`;
-                    addLog("RESPONSE", { filter_id: fid, outputUrl: finalUrl, type: "ai_generated_kira_agnes", prompt: fullPrompt.substring(0, 100) });
-                    return res.json(formatLocketResponse(finalUrl, { type: "ai_generated", engine: "kira_agnes_2.1_flash", prompt: fullPrompt }));
+                    addLog("RESPONSE", { fid, type: "ai_kira", outputUrl: finalUrl });
+                    return res.json(formatLocketResponse(finalUrl, { type: "ai_generated" }));
                 }
             } catch (aiErr) {
-                console.error("AI Generation failed, falling back to sticker overlay:", aiErr.message);
+                addLog("AI_FALLBACK", { fid, error: aiErr.response?.data || aiErr.message });
             }
         }
 
-        // 2. DỰ PHÒNG: NẾU KHÔNG CÓ PROMPT HOẶC AI TIMEOUT -> GHÉP STICKER 3D LÊN ẢNH GỐC
+        // D. DỰ PHÒNG: GHÉP STICKER 3D LÊN ẢNH GỐC NẾU AI LỖI HOẶC CHỌN STICKER
         const stkPath = resolveStickerPath(rawFid) || resolveStickerPath(cleanFid) || resolveStickerPath(mappedFid);
         if (stkPath && fs.existsSync(stkPath)) {
-            try {
-                const userBuf = await fetchImageBuffer(imgUrl);
-                const userCrop = await sharp(userBuf).resize(1080, 1080, { fit: 'cover' }).toBuffer();
-                
-                // Xác định kích thước & vị trí sticker phù hợp từng loại
-                let stkSize = 360;
-                let leftPos = 680; // Mặc định: Góc dưới bên phải
-                let topPos = 680;
+            const userBuf = await fetchImageBuffer(imgUrl);
+            const userCrop = await sharp(userBuf).resize(1080, 1080, { fit: 'cover' }).toBuffer();
 
-                // Các sticker đội đầu / nón / vương miện
-                if (/hat|crown|wig|mohawk|buns/i.test(cleanFid)) {
-                    stkSize = 420;
-                    leftPos = Math.round((1080 - stkSize) / 2);
-                    topPos = 40;
-                }
-                // Các hiệu ứng bao trùm (bão mưa, pháo hoa, hoàng hôn, đại dương, dung nham)
-                else if (/rain|fireworks|golden|ocean|volcano|watercolor|jungle/i.test(cleanFid)) {
-                    stkSize = 520;
-                    leftPos = Math.round((1080 - stkSize) / 2);
-                    topPos = Math.round((1080 - stkSize) / 2);
-                }
+            let stkSize = 360;
+            let leftPos = 680;
+            let topPos = 680;
 
-                const stkBuf = await sharp(stkPath).resize(stkSize, stkSize, { fit: 'inside' }).toBuffer();
-
-                const fileName = `stk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-                const outPath = path.join(IMAGES_DIR, fileName);
-
-                await sharp(userCrop)
-                    .composite([{ input: stkBuf, left: leftPos, top: topPos }])
-                    .jpeg({ quality: 93 })
-                    .toFile(outPath);
-
-                const finalUrl = `${baseUrl}/images/${fileName}`;
-                addLog("RESPONSE", { filter_id: fid, outputUrl: finalUrl, type: "sticker_overlay_fallback" });
-                return res.json(formatLocketResponse(finalUrl, { type: "sticker_overlay_fallback" }));
-            } catch (stkErr) {
-                console.error("Sticker overlay error:", stkErr);
+            if (/hat|crown|wig|mohawk|buns/i.test(cleanFid)) {
+                stkSize = 420;
+                leftPos = Math.round((1080 - stkSize) / 2);
+                topPos = 40;
+            } else if (/disco|cash|slimed|princess|happy_birthday|flower_crown|love_bug/i.test(cleanFid)) {
+                stkSize = 520;
+                leftPos = Math.round((1080 - stkSize) / 2);
+                topPos = Math.round((1080 - stkSize) / 2);
             }
+
+            const stkBuf = await sharp(stkPath).resize(stkSize, stkSize, { fit: 'inside' }).toBuffer();
+            const fileName = `stk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+            const outPath = path.join(IMAGES_DIR, fileName);
+
+            await sharp(userCrop)
+                .composite([{ input: stkBuf, left: leftPos, top: topPos }])
+                .jpeg({ quality: 93 })
+                .toFile(outPath);
+
+            const finalUrl = `${baseUrl}/images/${fileName}`;
+            addLog("RESPONSE", { fid, type: "sticker_overlay", outputUrl: finalUrl });
+            return res.json(formatLocketResponse(finalUrl, { type: "sticker_overlay" }));
         }
 
-        // Fallback an toàn tuyệt đối: Trả về ảnh gốc
-        addLog("RESPONSE", { filter_id: fid, outputUrl: imgUrl, type: "fallback_original" });
+        addLog("RESPONSE", { fid, type: "fallback_original", outputUrl: imgUrl });
         return res.json(formatLocketResponse(imgUrl));
-
     } catch (err) {
-        console.error("Filter processing error:", err);
-        const fallbackUrl = req.body?.data?.imageUrl || req.body?.data?.image_url || req.body?.imageUrl || req.body?.image_url || "";
-        addLog("ERROR", { message: err.message, fallbackUrl });
+        addLog("ERROR", { message: err.message });
+        const fallbackUrl = req.body?.data?.imageUrl || req.body?.imageUrl || "";
         return res.status(200).json(formatLocketResponse(fallbackUrl));
     }
 });
 
-// Tự động dọn dẹp ảnh tạm sau mỗi 60 phút (xóa file cũ hơn 30 phút để tiết kiệm bộ nhớ)
 setInterval(() => {
     try {
         const now = Date.now();
-        const files = fs.readdirSync(IMAGES_DIR);
-        for (const file of files) {
+        for (const file of fs.readdirSync(IMAGES_DIR)) {
             const filePath = path.join(IMAGES_DIR, file);
-            const stat = fs.statSync(filePath);
-            if (now - stat.mtimeMs > 30 * 60 * 1000) {
-                fs.unlinkSync(filePath);
-            }
+            if (now - fs.statSync(filePath).mtimeMs > 30 * 60 * 1000) fs.unlinkSync(filePath);
         }
     } catch (e) {}
 }, 60 * 60 * 1000);
@@ -841,4 +732,3 @@ setInterval(() => {
 app.listen(PORT, () => {
     console.log(`Locket Backend Mod Server is running on port ${PORT}`);
 });
-
