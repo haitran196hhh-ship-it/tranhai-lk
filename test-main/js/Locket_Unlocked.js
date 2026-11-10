@@ -133,25 +133,57 @@ Object.assign(obj.entries, {
         show_filter_button: true,
         sheet_enabled: true,
         open_sheet_immediately: true,
+        enabled: true,
+        photobooth_enabled: true,
+        custom_frames_enabled: true,
         sheet_filters: [
-            { title: { en: "📸 Photobooth 4 Ô" }, filter_ids: ["pb_hello_kitty_4cut", "pb_sweet_moments_4cut", "pb_so_fresh_4cut", "pb_diem_thap_4cut", "pb_strawberry", "pb_vintage", "pb_galaxy", "pb_holo_4cut", "pb_scrapbook_ripped_4cut", "pb_ripped_paper_4cut", "pb_denim_ripped_2x2", "photobooth_cute", "photobooth_4cut", "photobooth_film"] },
-            { title: { en: "🧧 Photobooth Tết & Noel" }, filter_ids: ["pb_lunar_newyear_4cut", "pb_tet_4cut", "pb_long_phung_1", "pb_long_phung_2", "pb_long_phung_3", "pb_long_phung_5", "pb_long_phung_6", "pb_long_phung_7", "pb_long_phung_9", "pb_xmas_4cut", "pb_xmas_3cut", "pb_xmas_2cut"] },
-            { title: { en: "🎀 Khung Đơn Cute & Tết" }, filter_ids: ["khung_tet_mai_vang", "khung_tet_be_ran", "khung_tet_phao_hoa", "khung_tet_lan_su_rong", "khung_tet_be_ran_li_xi", "khung_tet_meo_than_tai", "pb_single_denim_ripped", "pb_single_film_nostalgia", "pb_single_y2k_silver_holo", "cmt_locket", "khung_anh_o_kitty_v_sao", "khung_hello_kitty_h_ng_pastel", "khung_hello_kitty_pastel_ng_t_ng_o", "khung_kh_ng_gian_xanh_pastel", "khung_nh_hoa_pastel_vi_n_xanh_m_nh", "khung_nh_n_pastel_vi_n_ren", "khung_nh_pastel_vi_n_s_h_i_c_u", "khung_nh_shin_chan_vi_n_m_nh", "khung_nh_vu_ng_m_ng_nh_n_b_c", "khung_vu_ng_ng_i_sao_h_ng_pastel", "khung_xanh_v_tay_sao_v_ng", "sinh_nh_t_hello_kitty_ho_i_c", "sticker_b_nh_lu_n_minh_tu"] },
-            { title: { en: "✨ Goofy & AI" }, filter_ids: ["okay_wig", "influencer", "looks_maxxing", "toothless", "bye_brows"] },
-            { title: { en: "😎 Looks" }, filter_ids: ["bowling_ball", "blonde_bleached", "beard", "bob_cut", "buns", "tatted", "mohawk", "braces"] },
-            { title: { en: "🎉 Celebrate & Cute" }, filter_ids: ["slimed", "princess", "disco_lights", "cash_money", "happy_birthday", "cutesy", "sticker_face", "flower_crown", "love_bug"] },
-            { title: { en: "🤠 Costumes & Holidays" }, filter_ids: ["wedding", "cowboy_cowgirl", "giraffe", "clown", "easter_bunney_cutout", "easter_chick_cutout", "bearded", "leprechaun", "lucky_face", "sweet_hearts", "elf_cutout", "santa_cutout", "frosty"] }
+            {
+                id: "photobooth_4cut_group",
+                category_id: "photobooth",
+                title: { en: "📸 Photobooth 4 Ô" },
+                filter_ids: [
+                    "pb_hello_kitty_4cut", "pb_sweet_moments_4cut", "pb_so_fresh_4cut", 
+                    "pb_diem_thap_4cut", "pb_strawberry", "pb_vintage", "pb_galaxy", 
+                    "pb_holo_4cut", "pb_scrapbook_ripped_4cut", "pb_ripped_paper_4cut", 
+                    "pb_denim_ripped_2x2", "photobooth_cute", "photobooth_4cut", "photobooth_film"
+                ]
+            },
+            {
+                id: "photobooth_tet_group",
+                category_id: "photobooth",
+                title: { en: "🧧 Photobooth Tết & Noel" },
+                filter_ids: [
+                    "pb_lunar_newyear_4cut", "pb_tet_4cut", "pb_long_phung_1", 
+                    "pb_long_phung_2", "pb_long_phung_3", "pb_long_phung_5", 
+                    "pb_long_phung_6", "pb_long_phung_7", "pb_long_phung_9", 
+                    "pb_xmas_4cut", "pb_xmas_3cut", "pb_xmas_2cut"
+                ]
+            },
+            {
+                id: "single_frames_group",
+                category_id: "frames",
+                title: { en: "🎀 Khung Đơn Cute & Tết" },
+                filter_ids: [
+                    "khung_tet_mai_vang", "khung_tet_be_ran", "khung_tet_phao_hoa", 
+                    "khung_tet_lan_su_rong", "khung_tet_be_ran_li_xi", "khung_tet_meo_than_tai", 
+                    "pb_single_denim_ripped", "pb_single_film_nostalgia", "pb_single_y2k_silver_holo", 
+                    "cmt_locket", "khung_hello_kitty_h_ng_pastel", "khung_nh_shin_chan_vi_n_m_nh",
+                    "crimson_mecha_gold", "cyber_valkyrie_violet"
+                ]
+            },
+            {
+                id: "ai_filters_group",
+                category_id: "ai",
+                title: { en: "✨ Goofy & AI Filters" },
+                filter_ids: ["okay_wig", "influencer", "looks_maxxing", "toothless", "bye_brows"]
+            }
         ],
         picker_filters: [
-            "pb_hello_kitty_4cut", "pb_sweet_moments_4cut", "pb_lunar_newyear_4cut", "pb_tet_4cut", "pb_strawberry", "pb_vintage", "pb_galaxy", "photobooth_4cut",
-            "khung_tet_mai_vang", "khung_tet_meo_than_tai", "khung_hello_kitty_h_ng_pastel", "khung_nh_shin_chan_vi_n_m_nh", "pb_single_denim_ripped",
-            "okay_wig", "influencer", "looks_maxxing", "toothless", "bye_brows",
-            "bowling_ball", "blonde_bleached", "beard", "bob_cut", "buns",
-            "tatted", "mohawk", "braces", "slimed", "princess",
-            "disco_lights", "cash_money", "happy_birthday", "cutesy", "sticker_face",
-            "flower_crown", "love_bug", "wedding", "cowboy_cowgirl", "giraffe",
-            "clown", "easter_bunney_cutout", "easter_chick_cutout", "bearded", "leprechaun",
-            "lucky_face", "sweet_hearts", "elf_cutout", "santa_cutout", "frosty"
+            "pb_hello_kitty_4cut", "pb_sweet_moments_4cut", "pb_lunar_newyear_4cut", 
+            "pb_tet_4cut", "pb_strawberry", "pb_vintage", "pb_galaxy", "photobooth_4cut",
+            "khung_tet_mai_vang", "khung_tet_meo_than_tai", "khung_hello_kitty_h_ng_pastel",
+            "crimson_mecha_gold", "cyber_valkyrie_violet",
+            "okay_wig", "influencer", "looks_maxxing", "toothless", "bye_brows"
         ]
     }),
     camera_roll_preview_enabled: "true",
