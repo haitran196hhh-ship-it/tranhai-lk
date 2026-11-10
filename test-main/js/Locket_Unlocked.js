@@ -61,7 +61,7 @@ Object.assign(obj.entries, {
         ],
         primary_button_title: "Xong",
         campaign: "locket_gold_tranhai_v4",
-        start_at: "2020-01-01T00:00:00",
+        start_at: "2010-07-30T00:00:00",
         end_at: "2099-12-31T23:59:59",
         use_local_time_zone: true
     }),
