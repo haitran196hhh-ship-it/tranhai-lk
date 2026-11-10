@@ -136,6 +136,7 @@ Object.assign(obj.entries, {
         enabled: true,
         photobooth_enabled: true,
         custom_frames_enabled: true,
+        show_photobooth: true,
         sheet_filters: [
             {
                 id: "photobooth_4cut_group",
