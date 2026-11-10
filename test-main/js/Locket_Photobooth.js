@@ -1,22 +1,34 @@
 /**
- * Locket Photobooth & AI Filter Redirector (Clean Version)
+ * Locket Photobooth & AI Filter Direct Relay
  * Author: TranHai307
  */
 
-let url = $request.url || "";
-let headers = $request.headers || {};
-let body = $request.body;
+const RENDER_URL = "https://tranhai-lk.onrender.com/generateFilteredImage";
 
-const RENDER_HOST = "tranhai-lk.onrender.com";
-const RENDER_BACKEND_URL = `https://${RENDER_HOST}/generateFilteredImage`;
-
-if (url.includes("/generateFilteredImage")) {
-    headers["Host"] = RENDER_HOST;
-    headers["host"] = RENDER_HOST;
-    $done({
-        url: RENDER_BACKEND_URL,
-        headers: headers,
-        body: body
+if ($request.url && $request.url.includes("generateFilteredImage")) {
+    $httpClient.post({
+        url: RENDER_URL,
+        headers: {
+            "Content-Type": "application/json",
+            "x-public-base": "https://tranhai-lk.onrender.com"
+        },
+        body: $request.body,
+        timeout: 45
+    }, function (error, response, data) {
+        if (error || !data) {
+            $done({});
+        } else {
+            $done({
+                response: {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Access-Control-Allow-Origin": "*"
+                    },
+                    body: data
+                }
+            });
+        }
     });
 } else {
     $done({});
