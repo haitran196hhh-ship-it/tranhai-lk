@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Locket Filter & Gold Profile Unlocker (Clean Deobfuscated Version)
 // Author: TranHai307
 // ============================================================
@@ -131,3 +131,4 @@ if (typeof $response === "undefined") {
     $done({ status, headers: respHeaders, body });
   }
 }
+

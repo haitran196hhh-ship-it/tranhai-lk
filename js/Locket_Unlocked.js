@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Locket Remote Config (Full Clean Deobfuscated - TranHai307)
 // Author: TranHai307
 // ============================================================
@@ -251,3 +251,4 @@ obj.template_version_number = String(Date.now());
 obj.entries = Object.assign({}, obj.entries || {}, PREBUILT_ENTRIES);
 
 $done({ body: JSON.stringify(obj) });
+

@@ -1,4 +1,4 @@
-services:
+﻿services:
   - type: web
     name: locket-mod-backend
     runtime: node
@@ -11,4 +11,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+
 

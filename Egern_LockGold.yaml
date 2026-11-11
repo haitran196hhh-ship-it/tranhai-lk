@@ -1,4 +1,4 @@
-http_port: 8200
+﻿http_port: 8200
 socks_port: 8300
 allow_external_connections: false
 vif_only: false
@@ -305,7 +305,7 @@ scriptings:
 - http_response:
     name: Locket_Gold
     match: ^https:\/\/api\.revenuecat\.com\/.+\/(receipts$|subscribers\/[^/]+$)
-    script_url: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/Locket_TranHai307.js
+    script_url: https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/js/Locket_TranHai307.js
     update_interval: 5
     body_required: true
 mitm:
@@ -322,3 +322,4 @@ modules:
 - name: YouTube.Enhance.sgmodule
   url: https://raw.githubusercontent.com/Maasea/sgmodule/master/YouTube.Enhance.sgmodule
   enabled: true
+

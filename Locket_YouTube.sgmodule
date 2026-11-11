@@ -1,4 +1,4 @@
-#!name=⛔ [KHAI TỬ] Locket_YouTube - ĐÃ KHÓA VĨNH VIỄN
+﻿#!name=⛔ [KHAI TỬ] Locket_YouTube - ĐÃ KHÓA VĨNH VIỄN
 #!desc=⛔ CẢNH BÁO: Module này đã bị tác giả TranHai307 KHÓA VÀ KHAI TỬ VĨNH VIỄN! Mọi tính năng đã bị vô hiệu hóa. Vui lòng chuyển sang sử dụng module chính thức Locket_Only_Cold tại: https://tranhai-lk.onrender.com/Locket_Only_Cold.sgmodule
 #!author=TranHai307 (@minhhiep07)
 #!system=ios
@@ -17,3 +17,4 @@ DOMAIN,firebaseremoteconfig.googleapis.com,REJECT
 [Host]
 api.locketcamera.com = 0.0.0.0
 us-central1-locket-4252a.cloudfunctions.net = 0.0.0.0
+

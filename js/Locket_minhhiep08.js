@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Locket RevenueCat Gold Unlocker (Full Subscriptions & Entitlements)
 // Author: TranHai307
 // ============================================================
@@ -75,3 +75,4 @@ let respHeaders = Object.assign({}, ($response && $response.headers) || {}, {
   "Content-Type": "application/json; charset=utf-8"
 });
 $done({ status: 200, headers: respHeaders, body: JSON.stringify(obj) });
+
