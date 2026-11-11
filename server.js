@@ -698,7 +698,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                 let aiBuf = null;
 
                 // Gọi Kira AI model agnes-image-2.1-flash với reference_images chuẩn để giữ khuôn mặt 100%
-                const KIRA_KEY = (process.env.KIRA_API_KEY || "kira_ecd52009b0fb1973434aa883da5804cc").trim();
+                const KIRA_KEY = (process.env.KIRA_API_KEY || "AQ.Ab8RN6IXfkZJssUOOmLwVxenmwPGdMUAhOstSMGayDkjG2VkoQ").trim();
                 if (KIRA_KEY) {
                     try {
                         let refImages = [];
