@@ -1,0 +1,12 @@
+#!name=Meitu VIP
+#!desc=Mở khóa VIP Meitu XiuXiu & Wink
+#!author=TranHai307
+#!system=ios
+#!url=https://tranhai-lk.onrender.com/modules/Meitu.sgmodule
+#!====================================
+
+[MITM]
+hostname = %APPEND%, *.xiuxiu.meitu.com, api-sub.meitu.com, meitudata.com, meitu.com
+
+[Script]
+Meitu = type=http-response,pattern=^https?:\/\/([^/]+\.)?meitu\.com\/.*/(vip|user|account|h5)\/?,requires-body=1,max-size=-1,script-path=https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main/test-main/js/MeiTuXiuXiu.js
