@@ -66,6 +66,21 @@ app.get('/api/logs', (req, res) => {
 
 // Phục vụ ảnh tĩnh công khai
 app.use('/images', express.static(IMAGES_DIR, { maxAge: '1d' }));
+
+// __TRANHAI_STATIC_JS__
+app.use('/js', express.static(path.join(__dirname, 'js'), {
+  setHeaders: (res) => {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+  }
+}));
+app.use('/modules', express.static(path.join(__dirname, 'modules')));
+app.get('/Locket_Only_Cold.sgmodule', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'Locket_Only_Cold.sgmodule'));
+});
+
 app.use('/assets', express.static(ASSETS_DIR, { maxAge: '1d' }));
 app.use(express.static(PUBLIC_DIR));
 
