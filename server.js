@@ -768,7 +768,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
         if (GEMINI_KEY) {
           try {
             console.log("🔄 API 1 that bai, dang chuyen sang Gemini API du phong...");
-            const isOAuthToken = GEMINI_KEY.startsWith("AQ.") || GEMINI_KEY.startsWith("ya29.");
+            const isOAuthToken = false;
             const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent" + (isOAuthToken ? "" : ("?key=" + GEMINI_KEY));
             const reqHeaders = { "Content-Type": "application/json" };
             if (isOAuthToken) reqHeaders["Authorization"] = "Bearer " + GEMINI_KEY;
