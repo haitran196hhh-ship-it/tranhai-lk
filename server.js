@@ -764,7 +764,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
 
       // === [AUTO-FALLBACK] CHUYEN SANG GEMINI API NEU API 1 THAT BAI ===
       if (!aiBuf) {
-        const GEMINI_KEY = (process.env.GEMINI_API_KEY || "AQ.Ab8RN6IXfkZJssUOOmLwVxenmwPGdMUAhOstSMGayDkjG2VkoQ").trim();
+        const GEMINI_KEY = (process.env.GEMINI_API_KEY || "AQ.Ab8RN6LjaaO7_8d9b1-NTu72UKrXg7FWV33cRWFgAnFwyfaSZA").trim();
         if (GEMINI_KEY) {
           try {
             console.log("🔄 API 1 that bai, dang chuyen sang Gemini API du phong...");
