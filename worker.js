@@ -8,15 +8,12 @@
  * - Dự phòng sẵn Module & Scripts (Shadowrocket không bao giờ bị lỗi 404)
  */
 
-const GITHUB_BASE = "https://raw.githubusercontent.com/TranHai307-byte/locket/main";
+const GITHUB_BASE = "https://raw.githubusercontent.com/haitran196hhh-ship-it/tranhai-lk/main";
 const GITHUB_TOKEN = (typeof env !== "undefined" && env?.GITHUB_TOKEN) ? env.GITHUB_TOKEN : "";
 
 // Danh sách hạt giống VIP tích hợp sẵn
 const SEED_USERS = [
-  "mhhiep", "2c7dlquxuqulknrwgpcqsqlw0sk2",
-  "th_quang08", "th_quang", "nln9pozfecsccxhuqpiwvkhfwsi2",
-  "mhhuyz", "7tulqjjxb0srwqbbp3euildiqfe3",
-  "nguyentuankietne", "blgpf4fdvbbnlmfllziy4hnbjjn1"
+  "tranhai307", "ADMIN_TRANHAI307_UNLIMITED"
 ];
 
 // Bộ nhớ RAM đệm tạm thời trên Worker

@@ -762,6 +762,52 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                     }
                 }
 
+      // === [AUTO-FALLBACK] CHUYEN SANG GEMINI API NEU API 1 THAT BAI ===
+      if (!aiBuf) {
+        const GEMINI_KEY = (process.env.GEMINI_API_KEY || "AQ.Ab8RN6LjaaO7_8d9b1-NTu72UKrXg7FWV33cRWFgAnFwyfaSZA").trim();
+        if (GEMINI_KEY) {
+          try {
+            console.log("🔄 API 1 that bai, dang chuyen sang Gemini API du phong...");
+            const isOAuthToken = GEMINI_KEY.startsWith("AQ.") || GEMINI_KEY.startsWith("ya29.");
+            const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent" + (isOAuthToken ? "" : ("?key=" + GEMINI_KEY));
+            const reqHeaders = { "Content-Type": "application/json" };
+            if (isOAuthToken) reqHeaders["Authorization"] = "Bearer " + GEMINI_KEY;
+
+            let parts = [{ text: fullPrompt }];
+            if (typeof imgUrl !== "undefined" && imgUrl) {
+              try {
+                const uBuf = await fetchImageBuffer(imgUrl);
+                if (uBuf && uBuf.length > 0) {
+                  parts.push({ inlineData: { mimeType: "image/jpeg", data: uBuf.toString("base64") } });
+                }
+              } catch (_) {}
+            }
+
+            const gemRes = await fetch(geminiEndpoint, {
+              method: "POST",
+              headers: reqHeaders,
+              body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+              })
+            });
+
+            const gemJson = await gemRes.json();
+            const candParts = (gemJson.candidates && gemJson.candidates[0] && gemJson.candidates[0].content && gemJson.candidates[0].content.parts) || [];
+            const imgPart = candParts.find(p => p.inlineData && p.inlineData.data);
+            if (imgPart) {
+              aiBuf = Buffer.from(imgPart.inlineData.data, "base64");
+              console.log("✅ Tao anh bang Gemini API du phong thanh cong!");
+            } else {
+              console.warn("⚠️ Gemini API khong tra ve anh:", JSON.stringify(gemJson));
+            }
+          } catch (gemErr) {
+            console.error("❌ Loi khi goi Gemini API du phong:", gemErr.message);
+          }
+        }
+      }
+
+
                 if (aiBuf && aiBuf.length > 1000) {
                     const fileName = `ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
                     const outPath = path.join(IMAGES_DIR, fileName);
