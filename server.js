@@ -150,227 +150,8 @@ app.get('/api/ai-stats', (req, res) => {
   res.json({ status: "ok", stats: AI_STATS });
 });
 
-
-// __KIRA_PLATFORM_ROUTES__
-const kiraPlatform = require('./kira_platform_upgrade');
-
-// 1. API Lay thong tin tai khoan, luot mien phi va tao ma QR thanh toan
-app.get('/api/user/quota', (req, res) => {
-  const db = kiraPlatform.loadDb();
-  const userId = String(req.query.userId || kiraPlatform.extractUserIdentity(req));
-  const user = kiraPlatform.getOrCreateUser(db, userId);
-  kiraPlatform.saveDb(db);
-  const freeRemaining = user.unlimited ? 999999 : Math.max(0, db.settings.dailyFreeLimit - user.dailyFreeUsed);
-  res.json({
-    status: "ok",
-    user: {
-      userId: user.userId,
-      username: user.username,
-      status: user.status,
-      unlimited: user.unlimited,
-      dailyFreeLimit: db.settings.dailyFreeLimit,
-      dailyFreeUsed: user.dailyFreeUsed,
-      freeRemaining,
-      paidCredits: user.paidCredits,
-      totalAvailable: freeRemaining + user.paidCredits
-    },
-    pricing: {
-      pricePerTurnVnd: db.settings.pricePerTurnVnd,
-      bankId: db.settings.bankId,
-      bankName: db.settings.bankName,
-      accountNo: db.settings.accountNo,
-      accountName: db.settings.accountName
-    }
-  });
-});
-
-app.post('/api/payment/create', (req, res) => {
-  const db = kiraPlatform.loadDb();
-  const userId = String(req.body?.userId || req.query?.userId || kiraPlatform.extractUserIdentity(req));
-  const user = kiraPlatform.getOrCreateUser(db, userId);
-  const tx = kiraPlatform.createOrGetPendingTransaction(db, userId);
-  const qrImageUrl = `https://img.vietqr.io/image/${db.settings.bankId}-${db.settings.accountNo}-compact2.png?amount=${tx.amount}&addInfo=${encodeURIComponent(tx.txCode)}&accountName=${encodeURIComponent(db.settings.accountName)}`;
-  res.json({ status: "ok", transaction: tx, qrImageUrl, user });
-});
-
-app.get('/api/payment/status/:txCode', (req, res) => {
-  const db = kiraPlatform.loadDb();
-  const tx = db.transactions[req.params.txCode];
-  if (!tx) return res.status(404).json({ error: "Khong tim thay giao dich" });
-  const user = kiraPlatform.getOrCreateUser(db, tx.userId);
-  res.json({ status: "ok", transaction: tx, paidCredits: user.paidCredits });
-});
-
-// 2. Webhook Ngan Hang (SePay / Casso / VietQR) & Xac nhan thanh toan chong gian lan
-app.post('/api/payment/webhook', (req, res) => {
-  const secret = process.env.PAYMENT_WEBHOOK_SECRET || process.env.ADMIN_KEY || "tranhai307";
-  const authHeader = req.headers['authorization'] || req.headers['x-webhook-secret'] || req.query.secret || "";
-  if (secret && !String(authHeader).includes(secret) && req.body?.adminKey !== secret) {
-    return res.status(401).json({ error: "Unauthorized webhook" });
-  }
-
-  const content = String(req.body?.content || req.body?.description || req.body?.transferContent || req.body?.txCode || "").toUpperCase();
-  const amount = Number(req.body?.transferAmount || req.body?.amount || 0);
-  const bankTxId = String(req.body?.id || req.body?.referenceCode || req.body?.transactionId || Date.now());
-
-  const db = kiraPlatform.loadDb();
-  const matchCode = content.match(/KIRA\d{8}[A-Z0-9]+/);
-  const txCode = matchCode ? matchCode[0] : content.trim();
-  const tx = db.transactions[txCode];
-
-  if (!tx) return res.status(404).json({ error: "Transaction code not found", txCode });
-  if (tx.status === "PAID") return res.json({ status: "already_processed", transaction: tx });
-  if (amount < tx.amount) return res.status(400).json({ error: "Insufficient amount received", expected: tx.amount, received: amount });
-
-  tx.status = "PAID";
-  tx.paidAt = new Date().toISOString();
-  tx.bankTxId = bankTxId;
-  tx.receivedAmount = amount;
-
-  const turnsToAdd = Math.max(1, Math.floor(amount / db.settings.pricePerTurnVnd));
-  const user = kiraPlatform.getOrCreateUser(db, tx.userId);
-  user.paidCredits = (user.paidCredits || 0) + turnsToAdd;
-  user.totalSpentVnd = (user.totalSpentVnd || 0) + amount;
-  kiraPlatform.saveDb(db);
-
-  res.json({ status: "ok", message: `Da cap +${turnsToAdd} luot cho ${tx.userId}`, transaction: tx, user });
-});
-
-// 3. API Thư viện Lớp 11A2 - THPT Ngô Quyền (Caption, Thành viên, Khung Photobooth, 18 Filter Sharp)
-app.get('/api/11a2/config', (req, res) => {
-  const cfg = JSON.parse(fs.readFileSync(kiraPlatform.CLASS_11A2_PATH, 'utf8'));
-  res.json({ status: "ok", config: cfg });
-});
-
-app.get('/api/11a2/caption', (req, res) => {
-  const cfg = JSON.parse(fs.readFileSync(kiraPlatform.CLASS_11A2_PATH, 'utf8'));
-  const category = req.query.category || "thanh_xuan_11a2";
-  const memberName = String(req.query.name || "").trim();
-  let pool = cfg.captions[category] || cfg.captions.thanh_xuan_11a2;
-  if (memberName) {
-    pool = cfg.captions.ca_nhan_template.map(t => t.replace(/\[Tên\]/g, memberName));
-  }
-  const picked = pool[Math.floor(Math.random() * pool.length)];
-  res.json({ status: "ok", caption: picked, slogan: cfg.slogans[0] });
-});
-
-// 4. API Admin Quản trị người dùng, lượt dùng, giá tiền, duyệt thanh toán & 11A2
-function checkAdminAuth(req, res, next) {
-  const adminPass = process.env.ADMIN_KEY || "tranhai307";
-  const provided = req.headers['x-admin-key'] || req.query.adminKey || req.body?.adminKey;
-  if (provided !== adminPass) return res.status(401).json({ error: "Sai mat khau Admin" });
-  next();
-}
-
-app.get('/api/admin/overview', checkAdminAuth, (req, res) => {
-  const db = kiraPlatform.loadDb();
-  const usersList = Object.values(db.users);
-  const txList = Object.values(db.transactions);
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-  const paidTxs = txList.filter(t => t.status === "PAID");
-  const revenueTotal = paidTxs.reduce((s, t) => s + (t.receivedAmount || t.amount || 0), 0);
-  const revenueToday = paidTxs.filter(t => (t.paidAt || "").startsWith(today)).reduce((s, t) => s + (t.receivedAmount || t.amount || 0), 0);
-
-  res.json({
-    status: "ok",
-    settings: db.settings,
-    aiStats: typeof AI_STATS !== "undefined" ? AI_STATS : {},
-    summary: {
-      totalUsers: usersList.length,
-      activeToday: usersList.filter(u => (u.lastActiveAt || "").startsWith(today)).length,
-      revenueToday,
-      revenueTotal,
-      estimatedKiraCostVnd: ((typeof AI_STATS !== "undefined" ? AI_STATS.kira_success : 0) * (db.settings.estimatedCostPerAiImageVnd || 225))
-    },
-    users: usersList,
-    transactions: txList.slice(-100).reverse()
-  });
-});
-
-app.post('/api/admin/user-action', checkAdminAuth, (req, res) => {
-  const { userId, action, amount, dailyFreeLimit, pricePerTurnVnd } = req.body || {};
-  const db = kiraPlatform.loadDb();
-  if (action === "update_settings") {
-    if (dailyFreeLimit !== undefined) db.settings.dailyFreeLimit = Math.min(2, Math.max(1, Number(dailyFreeLimit)));
-    if (pricePerTurnVnd !== undefined) db.settings.pricePerTurnVnd = Number(pricePerTurnVnd);
-    kiraPlatform.saveDb(db);
-    return res.json({ status: "ok", settings: db.settings });
-  }
-  const u = kiraPlatform.getOrCreateUser(db, userId);
-  if (action === "add_credits") u.paidCredits += Number(amount || 1);
-  if (action === "sub_credits") u.paidCredits = Math.max(0, u.paidCredits - Number(amount || 1));
-  if (action === "reset_free") u.dailyFreeUsed = 0;
-  if (action === "toggle_ban") u.status = u.status === "banned" ? "active" : "banned";
-  if (action === "toggle_unlimited") u.unlimited = !u.unlimited;
-  kiraPlatform.saveDb(db);
-  res.json({ status: "ok", user: u });
-});
-
-app.post('/api/admin/approve-tx', checkAdminAuth, (req, res) => {
-  const { txCode } = req.body || {};
-  const db = kiraPlatform.loadDb();
-  const tx = db.transactions[txCode];
-  if (!tx) return res.status(404).json({ error: "Khong tim thay ma giao dich" });
-  if (tx.status === "PAID") return res.status(400).json({ error: "Giao dich nay da duoc duyet truoc do" });
-  tx.status = "PAID";
-  tx.paidAt = new Date().toISOString();
-  const u = kiraPlatform.getOrCreateUser(db, tx.userId);
-  u.paidCredits += (tx.creditsToGrant || 1);
-  u.totalSpentVnd = (u.totalSpentVnd || 0) + tx.amount;
-  kiraPlatform.saveDb(db);
-  res.json({ status: "ok", transaction: tx, user: u });
-});
-
-// 5. Giao diện Thanh toán (/pay) và Admin Dashboard (/admin)
-app.get('/pay', (req, res) => {
-  const db = kiraPlatform.loadDb();
-  const userId = String(req.query.user || "khach");
-  const user = kiraPlatform.getOrCreateUser(db, userId);
-  const tx = kiraPlatform.createOrGetPendingTransaction(db, userId);
-  const qrUrl = `https://img.vietqr.io/image/${db.settings.bankId}-${db.settings.accountNo}-compact2.png?amount=${tx.amount}&addInfo=${encodeURIComponent(tx.txCode)}&accountName=${encodeURIComponent(db.settings.accountName)}`;
-  res.send(`<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanh Toán Lượt Tạo Ảnh AI</title>
-  <style>body{background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:20px;margin:0}.card{max-width:440px;width:100%;background:#1e293b;border:2px solid #f59e0b;border-radius:20px;padding:24px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.5)}h2{color:#f59e0b;margin:0 0 8px}p{color:#cbd5e1;margin:6px 0}.qr{background:#fff;padding:12px;border-radius:16px;width:260px;height:260px;margin:16px auto;display:block}.box{background:#0f172a;padding:12px;border-radius:12px;margin:12px 0;text-align:left;font-size:15px}.code{color:#34d399;font-weight:700;font-size:20px}button{background:#f59e0b;color:#0f172a;border:none;padding:12px 20px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;font-size:15px}.status{margin-top:14px;padding:10px;border-radius:10px;background:#334155;font-weight:600}</style></head>
-  <body><div class="card"><h2>Bạn đã hết lượt miễn phí</h2><p>Giá mua thêm: <b>${tx.amount.toLocaleString('vi-VN')} VNĐ / 1 lượt</b></p>
-  <img class="qr" src="${qrUrl}" alt="VietQR MB Bank"/>
-  <div class="box"><div>Ngân hàng: <b>${db.settings.bankName}</b></div><div>Số tài khoản: <b id="stk">${db.settings.accountNo}</b></div><div>Chủ tài khoản: <b>${db.settings.accountName}</b></div><div>Nội dung CK: <span class="code" id="nd">${tx.txCode}</span></div></div>
-  <button onclick="navigator.clipboard.writeText('${tx.txCode}');alert('Đã sao chép nội dung chuyển khoản: ${tx.txCode}')">📋 Sao chép nội dung chuyển khoản</button>
-  <button style="background:#38bdf8" onclick="checkTx()">🔄 Kiểm tra trạng thái thanh toán</button>
-  <div class="status" id="st">⏳ Đang chờ thanh toán... (Lượt hiện có: ${user.paidCredits})</div></div>
-  <script>async function checkTx(){const r=await fetch('/api/payment/status/${tx.txCode}');const d=await r.json();if(d.transaction&&d.transaction.status==='PAID'){document.getElementById('st').style.background='#065f46';document.getElementById('st').innerText='✅ Thanh toán thành công! Bạn đã được cộng +1 lượt.';}else{document.getElementById('st').innerText='⏳ Đang chờ xác nhận giao dịch (${tx.txCode})...';}}setInterval(checkTx,5000);</script></body></html>`);
-});
-
-app.get('/admin', (req, res) => {
-  res.send(`<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kira AI & Locket 11A2 Admin Dashboard</title>
-  <style>body{background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;margin:0;padding:20px}h1{color:#f59e0b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}.stat{background:#1e293b;padding:16px;border-radius:14px;border:1px solid #334155}.stat b{font-size:24px;color:#38bdf8;display:block;margin-top:6px}table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:24px}th,td{padding:10px 12px;border-bottom:1px solid #334155;text-align:left;font-size:14px}th{background:#0f172a;color:#94a3b8}button,input,select{padding:8px 12px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#fff}button{background:#2563eb;border:none;cursor:pointer;font-weight:600;margin-right:4px}button.green{background:#059669}button.orange{background:#d97706}</style></head>
-  <body><h1>⚡ Admin Dashboard – Locket AI & Lớp 11A2 THPT Ngô Quyền</h1>
-  <div style="margin-bottom:16px"><input id="key" type="password" placeholder="Nhập mật khẩu Admin (mặc định: tranhai307)" style="width:280px" value="tranhai307"/> <button onclick="loadAll()">Đăng nhập / Làm mới</button></div>
-  <div class="grid" id="stats"></div>
-  <div style="background:#1e293b;padding:16px;border-radius:12px;margin-bottom:20px"><h3>⚙️ Cấu hình Giới hạn & Giá lượt (MB Bank: 0917921802 - TRAN LAM TUONG HAI)</h3>
-  Giới hạn miễn phí/ngày (1-2): <input id="freeLim" type="number" min="1" max="2" value="2" style="width:60px"/>
-  Giá mỗi lượt mua thêm (VNĐ): <select id="priceSel"><option value="2000">2.000 VNĐ</option><option value="3000" selected>3.000 VNĐ</option><option value="4000">4.000 VNĐ</option></select>
-  <button class="green" onclick="saveSettings()">Lưu cấu hình</button></div>
-  <h3>💳 Giao dịch Thanh toán VietQR gần đây</h3><table id="txTable"><thead><tr><th>Mã GD</th><th>Tài khoản</th><th>Số tiền</th><th>Trạng thái</th><th>Thời gian</th><th>Hành động</th></tr></thead><tbody></tbody></table>
-  <h3>👥 Danh sách Người dùng & Quản lý Lượt</h3><table id="userTable"><thead><tr><th>User ID</th><th>Trạng thái</th><th>Lượt Free hôm nay</th><th>Lượt trả phí còn</th><th>Hành động</th></tr></thead><tbody></tbody></table>
-  <script>
-  async function api(path,body){const k=document.getElementById('key').value;const r=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','x-admin-key':k},body:body?JSON.stringify(body):undefined});return r.json();}
-  async function loadAll(){const d=await api('/api/admin/overview');if(d.error)return alert(d.error);
-  document.getElementById('freeLim').value=d.settings.dailyFreeLimit;document.getElementById('priceSel').value=d.settings.pricePerTurnVnd;
-  document.getElementById('stats').innerHTML=`
-    <div class="stat">Tổng tài khoản<b>${d.summary.totalUsers}</b></div>
-    <div class="stat">Hoạt động hôm nay<b>${d.summary.activeToday}</b></div>
-    <div class="stat">Doanh thu hôm nay<b>${d.summary.revenueToday.toLocaleString('vi-VN')}đ</b></div>
-    <div class="stat">Tổng doanh thu<b>${d.summary.revenueTotal.toLocaleString('vi-VN')}đ</b></div>
-    <div class="stat">Kira AI thành công<b>${d.aiStats.kira_success||0} lượt (~${d.summary.estimatedKiraCostVnd.toLocaleString('vi-VN')}đ)</b></div>
-    <div class="stat">Sticker Fallback (0đ)<b>${d.aiStats.sticker_fallback||0} lượt</b></div>`;
-  document.querySelector('#txTable tbody').innerHTML=d.transactions.map(t=>`<tr><td><b>${t.txCode}</b></td><td>${t.userId}</td><td>${t.amount.toLocaleString('vi-VN')}đ</td><td>${t.status}</td><td>${t.createdAt.slice(0,19)}</td><td>${t.status==='PENDING'?`<button class="green" onclick="approveTx('${t.txCode}')">✅ Duyệt +1 lượt</button>`:'Đã duyệt'}</td></tr>`).join('');
-  document.querySelector('#userTable tbody').innerHTML=d.users.map(u=>`<tr><td><b>${u.userId}</b> ${u.unlimited?'<span style="color:#f59e0b">(Unlimited)</span>':''}</td><td>${u.status}</td><td>${u.dailyFreeUsed}/${d.settings.dailyFreeLimit}</td><td><b>${u.paidCredits}</b></td><td><button class="green" onclick="uAct('${u.userId}','add_credits',1)">+1 lượt</button><button class="orange" onclick="uAct('${u.userId}','sub_credits',1)">-1 lượt</button><button onclick="uAct('${u.userId}','reset_free')">Reset Free</button><button onclick="uAct('${u.userId}','toggle_ban')">Khóa/Mở</button></td></tr>`).join('');}
-  async function saveSettings(){await api('/api/admin/user-action',{action:'update_settings',dailyFreeLimit:document.getElementById('freeLim').value,pricePerTurnVnd:document.getElementById('priceSel').value});loadAll();}
-  async function uAct(userId,action,amount){await api('/api/admin/user-action',{userId,action,amount});loadAll();}
-  async function approveTx(txCode){await api('/api/admin/approve-tx',{txCode});loadAll();}
-  loadAll();
-  </script></body></html>`);
-});
-
+const kiraPlatform = require("./kira_platform_upgrade");
+kiraPlatform.registerRoutes(app);
 // __TRANHAI_STATIC_JS__
 app.use('/js', express.static(path.join(__dirname, 'js'), {
   setHeaders: (res) => {
@@ -1010,7 +791,6 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             const lockedPrompt = fullPrompt.includes("STRICT FACE IDENTITY") ? fullPrompt : (fullPrompt + faceLockInstruction);
 
             // __QUOTA_ENFORCEMENT_GATE__
-            // Không gọi AI nếu là khung Photobooth tĩnh (ptb_, frame_, collage) để tốn 0 token
             const isStaticFrameOnly = /^(ptb_|frame_|collage_|2cut|3cut|4cut|6cut|8cut|tet_|noel_)/i.test(cleanFid);
             const currentUserId = kiraPlatform.extractUserIdentity(req);
             const dbQuota = kiraPlatform.loadDb();
@@ -1021,16 +801,15 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             if (!isStaticFrameOnly) {
               if (currentUserObj.status === "banned") {
                 logStep(reqId, "USER_BANNED", "userId=" + currentUserId);
-              } else if ( isUserAdmin ) {
+              } else if (isUserAdmin) {
                 quotaConsumptionType = "ADMIN_UNLIMITED";
               } else if (currentUserObj.dailyFreeUsed < dbQuota.settings.dailyFreeLimit) {
                 quotaConsumptionType = "FREE_DAILY";
               } else if (currentUserObj.paidCredits > 0) {
                 quotaConsumptionType = "PAID_CREDIT";
               } else {
-                // Hết 2 lượt miễn phí/ngày và 0 lượt mua -> Tạo mã GD VietQR MB Bank & trả ảnh bảng thanh toán ngay (KHÔNG GỌI KIRA AI)
                 const pendingTx = kiraPlatform.createOrGetPendingTransaction(dbQuota, currentUserId);
-                logStep(reqId, "QUOTA_EXCEEDED_SHOW_QR", `userId=${currentUserId} | tx=${pendingTx.txCode} | amount=${pendingTx.amount}`);
+                logStep(reqId, "QUOTA_EXCEEDED_SHOW_QR", "userId=" + currentUserId + " | tx=" + pendingTx.txCode);
                 try {
                   aiBuf = await kiraPlatform.generatePaymentQrImageBuffer(sharp, axios, pendingTx, currentUserObj, dbQuota.settings);
                 } catch (qrErr) {
@@ -1050,7 +829,8 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                 if (userBuf && userBuf.length > 0) {
                   userNormalizedBuf = await sharp(userBuf)
                     .rotate()
-                    .resize(768, 768, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 })
+                    .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+                    .jpeg({ quality: 90 })
                     .toBuffer();
                   refImages.push("data:image/jpeg;base64," + userNormalizedBuf.toString("base64"));
                 }
@@ -1065,10 +845,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
               AI_STATS.kira_failed++;
             } else {
               logStep(reqId, "KIRA_START", "model=agnes-image-2.1-flash | refImages=" + refImages.length);
-              const kiraModelsOrder = [
-                "agnes-image-2.1-flash",
-                "gemini-2.5-flash-image"
-              ];
+              const kiraModelsOrder = ["agnes-image-2.1-flash", "gemini-2.5-flash-image"];
               for (let i = 0; i < kiraModelsOrder.length; i++) {
                 const currentKiraModel = kiraModelsOrder[i];
                 try {
@@ -1093,9 +870,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                   const candidateBuf = await extractKiraImageBuffer(kRes.data, axios, fetchImageBuffer, KIRA_KEY, reqId);
                   if (candidateBuf && candidateBuf.length > 1000) {
                     aiBuf = candidateBuf;
-                    AI_STATS.kira_success++;
-                    if (quotaConsumptionType === "FREE_DAILY") { currentUserObj.dailyFreeUsed += 1; currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); }
-                    else if (quotaConsumptionType === "PAID_CREDIT") { currentUserObj.paidCredits = Math.max(0, currentUserObj.paidCredits - 1); currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); }
+                    AI_STATS.kira_success++; if (quotaConsumptionType === "FREE_DAILY") { currentUserObj.dailyFreeUsed += 1; currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); } else if (quotaConsumptionType === "PAID_CREDIT") { currentUserObj.paidCredits = Math.max(0, currentUserObj.paidCredits - 1); currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); }
                     logStep(reqId, "KIRA_SUCCESS", `model=${currentKiraModel} | bytes=${aiBuf.length} | ms=${Date.now() - reqStartMs}`);
                     break;
                   } else {
