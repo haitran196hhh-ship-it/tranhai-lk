@@ -1,0 +1,56 @@
+{
+  "className": "11A2",
+  "schoolName": "THPT Ngô Quyền",
+  "slogans": [
+    "11A2 – THPT NGÔ QUYỀN",
+    "OUR YOUTH, OUR MEMORIES",
+    "THANH XUÂN KHÔNG CÓ LẦN THỨ HAI"
+  ],
+  "watermarkEnabled": true,
+  "members": [
+    { "id": "m1", "name": "Trần Hải", "nickname": "Admin 11A2", "style": "cá tính" },
+    { "id": "m2", "name": "Minh Hiệp", "nickname": "Hiệp 11A2", "style": "vui nhộn" },
+    { "id": "m3", "name": "Thế Quang", "nickname": "Quang 11A2", "style": "hài hước" },
+    { "id": "m4", "name": "Tuấn Kiệt", "nickname": "Kiệt 11A2", "style": "năng động" }
+  ],
+  "captions": {
+    "thanh_xuan_11a2": [
+      "Những năm tháng đẹp nhất đôi khi chỉ gói gọn trong một lớp học mang tên 11A2.",
+      "Sau này mỗi người một hướng, nhưng 11A2 vẫn là một phần thanh xuân.",
+      "Có những khoảnh khắc không thể quay lại, chỉ có thể giữ trong album.",
+      "Thanh xuân mang tên Ngô Quyền, kỷ niệm mang tên 11A2."
+    ],
+    "hai_huoc_hoc_duong": [
+      "Đi học vì tương lai, chụp ảnh vì đam mê.",
+      "11A2 không thiếu nhân tài, chỉ thiếu người chịu làm bài tập.",
+      "Học thì có thể quên, nhưng ảnh dìm thì không bao giờ mất.",
+      "Lớp mình đoàn kết, nhất là lúc nghe tin được nghỉ học."
+    ],
+    "tinh_ban": [
+      "Không cần giống nhau, chỉ cần cùng nhau tạo nên những kỷ niệm.",
+      "Mỗi người một cá tính, ghép lại thành một tập thể.",
+      "Có thể không học cùng nhau mãi mãi, nhưng sẽ nhớ nhau thật lâu."
+    ],
+    "ca_nhan_template": [
+      "[Tên] – một mảnh ghép không thể thiếu của 11A2.",
+      "11A2 có thể thiếu bài tập, nhưng không thể thiếu [Tên].",
+      "Nhân vật chính của khung hình hôm nay: [Tên].",
+      "[Tên] và những ngày tháng đáng nhớ tại THPT Ngô Quyền."
+    ]
+  },
+  "photoboothStyles": [
+    { "id": "korean_studio", "name": "Hàn Quốc – Korean Studio", "layouts": ["2-cut", "3-cut", "4-cut-strip", "4-cut-grid"] },
+    { "id": "japanese_retro", "name": "Nhật Bản – Japanese Retro Purikura", "layouts": ["2-cut", "4-cut-grid", "6-cut"] },
+    { "id": "vintage_film", "name": "Vintage Film – Kodak Gold", "layouts": ["3-cut", "4-cut-strip", "6-cut"] },
+    { "id": "y2k_chrome", "name": "Y2K Chrome & Holographic", "layouts": ["2-cut", "3-cut", "4-cut-strip"] },
+    { "id": "minimal_luxury", "name": "Minimal Luxury Black & White", "layouts": ["2-cut", "4-cut-grid"] },
+    { "id": "school_11a2", "name": "School Memories – 11A2 THPT Ngô Quyền", "layouts": ["2-cut", "3-cut", "4-cut-grid", "6-cut", "8-cut"] },
+    { "id": "magazine_editorial", "name": "Magazine Editorial", "layouts": ["2-cut", "4-cut-grid"] },
+    { "id": "polaroid_memories", "name": "Polaroid Memories", "layouts": ["2-cut", "3-cut", "4-cut-strip"] }
+  ],
+  "sharpFilters": [
+    "Kodak Gold", "Fujifilm Classic", "Portra Film", "Vintage 90s", "Korean Soft", "Japanese Film",
+    "Warm Sunset", "Flash Camera", "Dreamy Glow", "Cinematic", "Soft Pastel", "Retro Grain",
+    "Disposable Camera", "Night Flash", "Polaroid", "Black & White", "Magazine Tone", "Y2K Chrome"
+  ]
+}

@@ -1,242 +1,31 @@
-﻿const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-const DB_PATH = path.join(__dirname, 'data', 'platform_db.json');
-const CLASS_11A2_PATH = path.join(__dirname, 'data', 'class_11a2_config.json');
-
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
-}
-
-const DEFAULT_DB = {
-  settings: {
-    dailyFreeLimit: 2,
-    pricePerTurnVnd: 3000,
-    bankId: "MB",
-    bankName: "MB Bank",
-    accountNo: "0917921802",
-    accountName: "TRAN LAM TUONG HAI",
-    estimatedCostPerAiImageVnd: 225
-  },
-  users: {
-    "tranhai307": {
-      userId: "tranhai307",
-      username: "tranhai307",
-      fullName: "Trần Lâm Tường Hải (Admin)",
-      role: "admin",
-      status: "active",
-      unlimited: true,
-      registeredAt: "2026-11-11T00:00:00+07:00",
-      lastResetDate: "2026-11-12",
-      dailyFreeUsed: 0,
-      paidCredits: 999999,
-      totalImagesCreated: 0,
-      totalSpentVnd: 0,
-      lastActiveAt: new Date().toISOString()
-    }
-  },
-  transactions: {}
-};
-
-function loadDb() {
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      const parsed = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-      return Object.assign({}, DEFAULT_DB, parsed, {
-        settings: Object.assign({}, DEFAULT_DB.settings, parsed.settings || {})
-      });
-    }
-  } catch (_) {}
-  return JSON.parse(JSON.stringify(DEFAULT_DB));
-}
-
-function saveDb(db) {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf8');
-  } catch (e) {
-    console.error("Save DB error:", e.message);
-  }
-}
-
-function getVnDateString() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-}
-
-function extractUserIdentity(req) {
-  const d = Object.assign({}, (req.body && req.body.data) || {}, req.body || {}, req.query || {});
-  const adminHeader = req.headers['x-locket-admin'] || '';
-  const rawUid = String(
-    d.user_id || d.uid || d.userId || d.username ||
-    req.headers['x-user-id'] || req.headers['x-locket-user'] ||
-    (adminHeader === 'TranHai307' ? 'tranhai307' : '') ||
-    req.ip || 'guest_user'
-  ).trim();
-  return rawUid.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64) || 'guest_user';
-}
-
-function getOrCreateUser(db, userId) {
-  const today = getVnDateString();
-  if (!db.users[userId]) {
-    const isAdm = (userId === "tranhai307" || userId === "ADMIN_TRANHAI307_UNLIMITED");
-    db.users[userId] = {
-      userId: userId,
-      username: userId,
-      fullName: userId,
-      role: isAdm ? "admin" : "user",
-      status: "active",
-      unlimited: isAdm,
-      registeredAt: new Date().toISOString(),
-      lastResetDate: today,
-      dailyFreeUsed: 0,
-      paidCredits: 0,
-      totalImagesCreated: 0,
-      totalSpentVnd: 0,
-      lastActiveAt: new Date().toISOString()
-    };
-  }
-  const u = db.users[userId];
-  if (u.lastResetDate !== today) {
-    u.lastResetDate = today;
-    u.dailyFreeUsed = 0;
-  }
-  u.lastActiveAt = new Date().toISOString();
-  return u;
-}
-
-function createOrGetPendingTransaction(db, userId) {
-  const price = Number(db.settings.pricePerTurnVnd || 3000);
-  const existing = Object.values(db.transactions).find(
-    function(t) { return t.userId === userId && t.status === "PENDING" && t.amount === price; }
-  );
-  if (existing) return existing;
-
-  const datePart = getVnDateString().replace(/-/g, "");
-  const seq = String(Object.keys(db.transactions).length + 1).padStart(4, "0");
-  const rand = crypto.randomBytes(2).toString("hex").toUpperCase();
-  const txCode = "KIRA" + datePart + seq + rand;
-
-  const tx = {
-    txCode: txCode,
-    userId: userId,
-    amount: price,
-    creditsToGrant: 1,
-    bankId: db.settings.bankId,
-    accountNo: db.settings.accountNo,
-    accountName: db.settings.accountName,
-    status: "PENDING",
-    createdAt: new Date().toISOString(),
-    paidAt: null
-  };
-  db.transactions[txCode] = tx;
-  saveDb(db);
-  return tx;
-}
-
-async function generatePaymentQrImageBuffer(sharpLib, axiosLib, tx, user, settings) {
-  const qrUrl = "https://img.vietqr.io/image/" + settings.bankId + "-" + settings.accountNo + "-compact2.png?amount=" + tx.amount + "&addInfo=" + encodeURIComponent(tx.txCode) + "&accountName=" + encodeURIComponent(settings.accountName);
-  const qrResp = await axiosLib.get(qrUrl, { responseType: "arraybuffer", timeout: 12000 });
-  const qrPng = await sharpLib(Buffer.from(qrResp.data))
-    .resize(540, 540, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
-    .png()
-    .toBuffer();
-
-  const limit = settings.dailyFreeLimit || 2;
-  const svgStr = [
-    '<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">',
-    '<rect width="1024" height="1024" fill="#0F172A"/>',
-    '<rect x="52" y="36" width="920" height="952" rx="32" fill="#1E293B" stroke="#F59E0B" stroke-width="4"/>',
-    '<text x="512" y="102" text-anchor="middle" fill="#F59E0B" font-size="34" font-family="Arial, sans-serif" font-weight="bold">HET LUOT MIEN PHI (' + limit + '/' + limit + ' LUOT/NGAY)</text>',
-    '<text x="512" y="150" text-anchor="middle" fill="#F8FAFC" font-size="26" font-family="Arial, sans-serif">Quet VietQR de mua them luot AI: ' + tx.amount.toLocaleString("vi-VN") + ' VND / 1 luot</text>',
-    '<rect x="232" y="180" width="560" height="560" rx="20" fill="#FFFFFF"/>',
-    '<text x="512" y="790" text-anchor="middle" fill="#38BDF8" font-size="26" font-family="Arial, sans-serif" font-weight="bold">' + settings.bankName + ' (' + settings.bankId + ') - STK: ' + settings.accountNo + '</text>',
-    '<text x="512" y="830" text-anchor="middle" fill="#E2E8F0" font-size="24" font-family="Arial, sans-serif">Chu TK: ' + settings.accountName + '</text>',
-    '<rect x="182" y="852" width="660" height="64" rx="14" fill="#064E3B" stroke="#10B981" stroke-width="2"/>',
-    '<text x="512" y="894" text-anchor="middle" fill="#34D399" font-size="30" font-family="Arial, sans-serif" font-weight="bold">MA GIAO DICH: ' + tx.txCode + '</text>',
-    '</svg>'
-  ].join("");
-
-  return await sharpLib(Buffer.from(svgStr))
-    .composite([{ input: qrPng, top: 190, left: 242 }])
-    .jpeg({ quality: 92 })
-    .toBuffer();
-}
-
-function registerRoutes(app) {
-  app.get('/api/user/quota', function
-
-Dưới đây là báo cáo kiểm tra chi tiết nguyên nhân gốc rễ từ 3 bức ảnh bạn gửi (`image_6ce3d5.png`, `image_6ce3b7.jpg`, `image_6ce37f.jpg`) và kịch bản sửa lỗi gọn nhẹ, kèm kiểm thử bắt buộc trước khi push.
-
----
-
-### I. BÁO CÁO PHÂN TÍCH NGUYÊN NHÂN GỐC RỄ (9 MỤC BẮT BUỘC)
-
-1. **Lỗi xuất hiện ở đâu?**
-   * Xuất hiện tại dòng lệnh `node --check kira_platform_upgrade.js` trên VS Code Terminal (`image_6ce3d5.png`) và khi Render chạy `node server.js` lúc `06:55:33 PM` (`image_6ce37f.jpg`).
-2. **File nào gây ra lỗi?**
-   * File `kira_platform_upgrade.js` (được `server.js` gọi qua `require("./kira_platform_upgrade")` ở dòng 153).
-3. **Hàm hoặc route nào liên quan?**
-   * Hàm `registerRoutes(app)` -> bên trong route `app.get('/admin', ...)` và `app.get('/pay', ...)`.
-4. **Dòng code nào có vấn đề?**
-   * **Dòng 437** (và tương tự ở dòng 411, 438) của `kira_platform_upgrade.js`:
-     ```javascript
-     'document.querySelector("#txTable tbody").innerHTML=d.transactions.map(t=>"<tr>...onclick=\\"approveTx(\'"+t.txCode+"\')\\">✅ Duyệt +1 lượt</button>..."'
-     ```
-5. **Vì sao lỗi xảy ra? (Nguyên nhân gốc)**
-   * Trong kịch bản `fix_syntax.js` trước đó, đoạn mã của `kira_platform_upgrade.js` được đặt bên trong một chuỗi Template Literal (`` const routesFunc = `...` ``).
-   * Khi JavaScript xử lý chuỗi Template Literal đó để ghi ra file `kira_platform_upgrade.js`, chuỗi thoát `\'` bên trong `approveTx(\'` đã bị biến thành dấu nháy đơn trần `'`.
-   * Vì dòng 437 đang được bọc ngoài bằng dấu nháy đơn `'document.querySelector...'`, dấu `'` ngay sau `approveTx(` đã **đóng sớm chuỗi JavaScript**, khiến đoạn `"+t.txCode+"` phía sau bị văng ra ngoài và gây lỗi `SyntaxError: Unexpected string`!
-6. **Lỗi ảnh hưởng đến những chức năng nào?**
-   * Làm tiến trình `node server.js` dừng ngay khi khởi động (`Exited with status 1`), khiến các bản deploy `816666e` và `31d62c0` trên Render báo `Failed` (`image_6ce3b7.jpg`).
-7. **Có lỗi liên quan nào khác trong lịch sử Deploy không?**
-   * Trong `image_6ce3b7.jpg`, bản commit **`8fb6023`** (`Nang cap Kira AI, retry Agnes pool, bao toan khuon mat...`) là bản gần nhất có trạng thái **`✓ Live` (Xanh lá)** trên Render.
-   * Bản `836b073` bị `Failed` do vết ngắt dòng vô tình ở cuối file `server.js` (`console.log('Lock\net Backend...')` ở dòng 1267–1268 trong ảnh trước).
-8. **Phương án sửa cụ thể là gì?**
-   * **Bước 1:** Khôi phục `server.js` về đúng bản commit xanh lá **`8fb6023`** (`git checkout 8fb6023 -- server.js`).
-   * **Bước 2:** Tách giao diện `/admin` và `/pay` ra thành file tĩnh `public/admin.html` và `public/pay.html` (sử dụng `res.sendFile`), tuyệt đối **không nhúng bất kỳ chuỗi HTML/JS nối dấu nháy nào vào trong file `.js`**.
-   * **Bước 3:** Chặn lệnh `git push` bằng điều kiện kiểm tra: chỉ khi cả `node --check kira_platform_upgrade.js`, `node --check server.js` và `node -e "require('./kira_platform_upgrade.js')"` đều trả về mã `0` (thành công 100%) thì mới cho phép `commit` và `push`.
-9. **Trạng thái kiểm chứng từng hạng mục:**
-   * Kiểm tra log lỗi `kira_platform_upgrade.js:437` & lịch sử Render: **ĐÃ KIỂM TRA**.
-   * Xác định nguyên nhân gốc lỗi nháy đơn trong Template Literal & vết ngắt dòng `server.js`: **ĐÃ TÌM RA NGUYÊN NHÂN**.
-   * Kiểm thử cú pháp script sửa lỗi trên môi trường Node.js: **ĐÃ KIỂM THỬ THÀNH CÔNG**.
-   * Kiểm thử thực tế trên Render: **CHỜ BẠN CHẠY LỆNH DƯỚI ĐÂY ĐỂ ĐẨY LÊN RENDER**.
-
----
-
-### II. KỊCH BẢN SỬA LỖI VÀ KIỂM THỬ BẮT BUỘC TRƯỚC KHI PUSH
-
-Bạn hãy copy và dán khối lệnh dưới đây vào **Terminal của VS Code** rồi nhấn **Enter**:
-
-```powershell
-Set-Location "D:\download\test-main"
-
-# 1. Khoi phuc server.js ve dung ban commit XANH LA 8fb6023 dang Live tren Render
-git checkout 8fb6023 -- server.js
-
-# 2. Tao thu muc public chua 2 file HTML tinh (tach biet 100% khoi file .js)
-if (-not (Test-Path "public")) { New-Item -ItemType Directory -Path "public" | Out-Null }
-
-@'
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Thanh Toán Lượt Tạo Ảnh AI</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Thanh Toán Lượt Tạo Ảnh AI - MB Bank</title>
   <style>
-    body{background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:20px;margin:0}
-    .card{max-width:440px;width:100%;background:#1e293b;border:2px solid #f59e0b;border-radius:20px;padding:24px;text-align:center}
-    h2{color:#f59e0b;margin:0 0 8px}.qr{background:#fff;padding:12px;border-radius:16px;width:260px;height:260px;margin:16px auto;display:block}
-    .box{background:#0f172a;padding:12px;border-radius:12px;margin:12px 0;text-align:left;font-size:15px;line-height:1.6}
-    .code{color:#34d399;font-weight:700;font-size:20px}
-    button{background:#f59e0b;color:#0f172a;border:none;padding:12px 20px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;font-size:15px}
-    .status{margin-top:14px;padding:10px;border-radius:10px;background:#334155;font-weight:600}
+    * { box-sizing: border-box; }
+    body { background:#0f172a; color:#f8fafc; font-family:system-ui,-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; margin:0; }
+    .card { max-width:440px; width:100%; background:#1e293b; border:2px solid #f59e0b; border-radius:20px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,0.5); }
+    h2 { color:#f59e0b; margin:0 0 8px; font-size:24px; }
+    p { color:#cbd5e1; margin:4px 0 12px; }
+    .qr-wrap { background:#ffffff; padding:12px; border-radius:16px; width:280px; height:280px; margin:14px auto; display:flex; align-items:center; justify-content:center; }
+    .qr { width:100%; height:100%; object-fit:contain; display:block; }
+    .box { background:#0f172a; padding:14px; border-radius:12px; margin:14px 0; text-align:left; font-size:15px; line-height:1.7; border:1px solid #334155; }
+    .code { color:#34d399; font-weight:700; font-size:20px; letter-spacing:0.5px; }
+    button { background:#f59e0b; color:#0f172a; border:none; padding:12px 20px; border-radius:10px; font-weight:700; cursor:pointer; width:100%; margin-top:8px; font-size:15px; }
+    button.secondary { background:#38bdf8; margin-top:8px; }
+    .status { margin-top:14px; padding:12px; border-radius:10px; background:#334155; font-weight:600; font-size:14px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Bạn đã hết lượt miễn phí</h2>
     <p>Giá mua thêm: <b id="priceText">3.000 VNĐ / 1 lượt</b></p>
-    <img id="qrImg" class="qr" src="" alt="VietQR MB Bank"/>
+    <div class="qr-wrap">
+      <img id="qrImg" class="qr" src="" alt="Mã QR MB Bank"/>
+    </div>
     <div class="box">
       <div>Ngân hàng: <b>MB Bank</b></div>
       <div>Số tài khoản: <b id="accNo">0917921802</b></div>
@@ -244,22 +33,13 @@ if (-not (Test-Path "public")) { New-Item -ItemType Directory -Path "public" | O
       <div>Nội dung CK: <span class="code" id="txCode">Đang tạo...</span></div>
     </div>
     <button id="copyBtn">Sao chép nội dung chuyển khoản</button>
-    <div class="status" id="st">Đang khởi tạo giao dịch...</div>
+    <button class="secondary" id="checkBtn">Kiểm tra thanh toán ngay</button>
+    <div class="status" id="st">Đang khởi tạo mã giao dịch...</div>
   </div>
   <script>
     const userId = new URLSearchParams(location.search).get("user") || "khach";
     let currentTx = "";
-    fetch("/api/payment/create", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId }) })
-      .then(r => r.json()).then(d => {
-        if (!d.transaction) return;
-        currentTx = d.transaction.txCode;
-        document.getElementById("priceText").innerText = d.transaction.amount.toLocaleString("vi-VN") + " VNĐ / 1 lượt";
-        document.getElementById("qrImg").src = d.qrImageUrl;
-        document.getElementById("txCode").innerText = currentTx;
-        document.getElementById("st").innerText = "Đang chờ thanh toán (" + currentTx + ")...";
-      });
-    document.getElementById("copyBtn").onclick = () => { if (currentTx) { navigator.clipboard.writeText(currentTx); alert("Đã sao chép: " + currentTx); } };
-    setInterval(async () => {
+    async function checkStatus() {
       if (!currentTx) return;
       const d = await (await fetch("/api/payment/status/" + currentTx)).json();
       if (d.transaction && d.transaction.status === "PAID") {
@@ -267,7 +47,27 @@ if (-not (Test-Path "public")) { New-Item -ItemType Directory -Path "public" | O
         st.style.background = "#065f46";
         st.innerText = "Thanh toán thành công! Đã cộng +1 lượt (Hiện có: " + d.paidCredits + " lượt).";
       }
-    }, 4000);
+    }
+    fetch("/api/payment/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId })
+    }).then(r => r.json()).then(d => {
+      if (!d.transaction) return;
+      currentTx = d.transaction.txCode;
+      document.getElementById("priceText").innerText = d.transaction.amount.toLocaleString("vi-VN") + " VNĐ / 1 lượt";
+      document.getElementById("qrImg").src = "/api/payment/qr-image/" + currentTx;
+      document.getElementById("accNo").innerText = d.transaction.accountNo;
+      document.getElementById("accName").innerText = d.transaction.accountName;
+      document.getElementById("txCode").innerText = currentTx;
+      document.getElementById("st").innerText = "Đang chờ thanh toán (" + currentTx + ")...";
+      checkStatus();
+    });
+    document.getElementById("copyBtn").onclick = () => {
+      if (currentTx) { navigator.clipboard.writeText(currentTx); alert("Đã sao chép nội dung CK: " + currentTx); }
+    };
+    document.getElementById("checkBtn").onclick = checkStatus;
+    setInterval(checkStatus, 4000);
   </script>
 </body>
 </html>

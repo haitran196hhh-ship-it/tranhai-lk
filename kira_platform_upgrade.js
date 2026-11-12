@@ -243,7 +243,7 @@ function registerRoutes(app) {
   app.get('/api/11a2/caption', function(req, res) {
     const cfg = fs.existsSync(CLASS_11A2_PATH) ? JSON.parse(fs.readFileSync(CLASS_11A2_PATH, 'utf8')) : {};
     const category = req.query.category || "thanh_xuan_11a2";
-    const memberName = String(req.query.name || "").trim();
+    const memberName = String(req.query.name || "").replace(/[()]/g, "").trim();
     let pool = (cfg.captions && cfg.captions[category]) || ["11A2 - THPT Ngo Quyen"];
     if (memberName && cfg.captions && cfg.captions.ca_nhan_template) {
       pool = cfg.captions.ca_nhan_template.map(function(t) { return t.replace(/\[Tên\]/g, memberName); });
@@ -314,6 +314,34 @@ function registerRoutes(app) {
     u.totalSpentVnd = (u.totalSpentVnd || 0) + tx.amount;
     saveDb(db);
     res.json({ status: "ok", transaction: tx, user: u });
+  });
+
+  
+  app.get('/api/payment/qr-image/:txCode', async function(req, res) {
+    try {
+      const db = loadDb();
+      const tx = db.transactions[req.params.txCode];
+      const amount = tx ? tx.amount : db.settings.pricePerTurnVnd;
+      const code = tx ? tx.txCode : req.params.txCode;
+      const qrUrl = "https://img.vietqr.io/image/" + db.settings.bankId + "-" + db.settings.accountNo + "-compact2.png?amount=" + amount + "&addInfo=" + encodeURIComponent(code) + "&accountName=" + encodeURIComponent(db.settings.accountName);
+      const r = await fetch(qrUrl);
+      const buf = Buffer.from(await r.arrayBuffer());
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.send(buf);
+    } catch (e) {
+      res.status(500).send("QR Error");
+    }
+  });
+
+  app.post('/api/11a2/member', checkAdminAuth, function(req, res) {
+    const cfg = fs.existsSync(CLASS_11A2_PATH) ? JSON.parse(fs.readFileSync(CLASS_11A2_PATH, 'utf8')) : { members: [] };
+    if (!Array.isArray(cfg.members)) cfg.members = [];
+    if (req.body && req.body.action === "add" && req.body.name) {
+      cfg.members.push({ id: "m" + Date.now(), name: String(req.body.name).trim(), nickname: String(req.body.nickname || "").trim() });
+      fs.writeFileSync(CLASS_11A2_PATH, JSON.stringify(cfg, null, 2), 'utf8');
+    }
+    res.json({ status: "ok", members: cfg.members });
   });
 
   app.get('/pay', function(req, res) {

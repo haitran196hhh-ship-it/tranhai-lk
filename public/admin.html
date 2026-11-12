@@ -1,27 +1,35 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin Dashboard - Locket AI & 11A2</title>
   <style>
-    body{background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;margin:0;padding:20px}h1{color:#f59e0b}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
-    .stat{background:#1e293b;padding:16px;border-radius:14px;border:1px solid #334155}.stat b{font-size:24px;color:#38bdf8;display:block;margin-top:6px}
+    body{background:#0f172a;color:#f8fafc;font-family:system-ui,sans-serif;margin:0;padding:20px}h1,h3{color:#f59e0b}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+    .stat{background:#1e293b;padding:16px;border-radius:14px;border:1px solid #334155}.stat b{font-size:22px;color:#38bdf8;display:block;margin-top:6px}
     table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:24px}
     th,td{padding:10px 12px;border-bottom:1px solid #334155;text-align:left;font-size:14px}th{background:#0f172a;color:#94a3b8}
     button,input,select{padding:8px 12px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#fff}
     button{background:#2563eb;border:none;cursor:pointer;font-weight:600;margin-right:4px}button.green{background:#059669}button.orange{background:#d97706}
+    .panel{background:#1e293b;padding:16px;border-radius:12px;margin-bottom:20px;border:1px solid #334155}
   </style>
 </head>
 <body>
   <h1>Admin Dashboard – Locket AI & Lớp 11A2 THPT Ngô Quyền</h1>
   <div style="margin-bottom:16px"><input id="key" type="password" value="tranhai307" style="width:240px"/> <button onclick="loadAll()">Làm mới dữ liệu</button></div>
   <div class="grid" id="stats"></div>
-  <div style="background:#1e293b;padding:16px;border-radius:12px;margin-bottom:20px">
+  <div class="panel">
     <h3>Cấu hình Giới hạn & Giá lượt (MB Bank: 0917921802 - TRAN LAM TUONG HAI)</h3>
     Giới hạn miễn phí/ngày (1-2): <input id="freeLim" type="number" min="1" max="2" value="2" style="width:60px"/>
     Giá mỗi lượt: <select id="priceSel"><option value="2000">2.000 VNĐ</option><option value="3000" selected>3.000 VNĐ</option><option value="4000">4.000 VNĐ</option></select>
     <button class="green" onclick="saveSettings()">Lưu cấu hình</button>
+  </div>
+  <div class="panel">
+    <h3>Quản lý Thành viên & Caption Lớp 11A2 – THPT Ngô Quyền</h3>
+    Thêm thành viên 11A2: <input id="mName" placeholder="Tên thành viên (VD: Minh Hiệp)" style="width:220px"/>
+    <input id="mNick" placeholder="Biệt danh" style="width:160px"/>
+    <button class="green" onclick="addMember()">+ Thêm thành viên</button>
+    <div id="membersList" style="margin-top:12px;color:#cbd5e1;font-size:14px"></div>
   </div>
   <h3>Giao dịch Thanh toán VietQR</h3>
   <table id="txTable"><thead><tr><th>Mã GD</th><th>Tài khoản</th><th>Số tiền</th><th>Trạng thái</th><th>Thời gian</th><th>Duyệt</th></tr></thead><tbody></tbody></table>
@@ -42,6 +50,11 @@
         '<div class="stat">Hoạt động hôm nay<b>' + d.summary.activeToday + '</b></div>' +
         '<div class="stat">Doanh thu hôm nay<b>' + d.summary.revenueToday.toLocaleString("vi-VN") + 'đ</b></div>' +
         '<div class="stat">Tổng doanh thu<b>' + d.summary.revenueTotal.toLocaleString("vi-VN") + 'đ</b></div>';
+
+      const c11 = await (await fetch("/api/11a2/config")).json();
+      if (c11.config && c11.config.members) {
+        document.getElementById("membersList").innerText = "Thành viên 11A2 hiện có (" + c11.config.members.length + "): " + c11.config.members.map(m => m.name + (m.nickname ? " (" + m.nickname + ")" : "")).join(", ");
+      }
 
       const txBody = document.querySelector("#txTable tbody"); txBody.innerHTML = "";
       d.transactions.forEach(t => {
@@ -69,6 +82,14 @@
     }
     async function saveSettings() {
       await api("/api/admin/user-action", { action:"update_settings", dailyFreeLimit:document.getElementById("freeLim").value, pricePerTurnVnd:document.getElementById("priceSel").value });
+      loadAll();
+    }
+    async function addMember() {
+      const name = document.getElementById("mName").value.trim();
+      const nickname = document.getElementById("mNick").value.trim();
+      if (!name) return alert("Vui lòng nhập tên thành viên!");
+      await api("/api/11a2/member", { action: "add", name, nickname });
+      document.getElementById("mName").value = ""; document.getElementById("mNick").value = "";
       loadAll();
     }
     loadAll();
