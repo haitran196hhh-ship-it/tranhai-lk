@@ -67,6 +67,89 @@ app.get('/api/logs', (req, res) => {
 // Phục vụ ảnh tĩnh công khai
 app.use('/images', express.static(IMAGES_DIR, { maxAge: '1d' }));
 
+
+// __AI_TELEMETRY_STATS__
+const AI_STATS = {
+  total_requests: 0,
+  kira_success: 0,
+  kira_failed: 0,
+  gemini_called: 0,
+  gemini_success: 0,
+  gemini_failed: 0,
+  sticker_fallback: 0,
+  original_fallback: 0,
+  total_duration_ms: 0,
+  avg_duration_ms: 0
+};
+const ACTIVE_RENDER_JOBS = new Map();
+
+function logStep(reqId, stage, detail = "") {
+  const cleanDetail = String(detail || "")
+    .replace(/kira_[a-zA-Z0-9_-]+/g, "kira_***")
+    .replace(/AIza[a-zA-Z0-9_-]+/g, "AIza***")
+    .replace(/AQ.[a-zA-Z0-9_-]+/g, "AQ.***")
+    .slice(0, 500);
+  console.log(`[${new Date().toISOString()}] [${reqId}] ${stage}${cleanDetail ? " | " + cleanDetail : ""}`);
+}
+
+async function extractKiraImageBuffer(payload, axiosInstance, fetchImageBufferFn, kiraKey, reqId) {
+  if (!payload) return null;
+  const item = (Array.isArray(payload.data) && payload.data[0])
+    || (Array.isArray(payload.output) && payload.output[0])
+    || (Array.isArray(payload.images) && payload.images[0])
+    || payload.data
+    || payload;
+
+  if (typeof item === "string") {
+    if (item.startsWith("data:image")) {
+      const b64 = item.split(",")[1];
+      return b64 ? Buffer.from(b64, "base64") : null;
+    }
+    if (item.startsWith("http")) {
+      return await fetchImageBufferFn(item);
+    }
+    if (item.length > 256) {
+      return Buffer.from(item, "base64");
+    }
+  }
+
+  const b64Data = item?.b64_json || item?.base64 || item?.image_base64 || payload?.b64_json || payload?.base64;
+  if (b64Data && typeof b64Data === "string") {
+    const cleanB64 = b64Data.includes(",") ? b64Data.split(",")[1] : b64Data;
+    return Buffer.from(cleanB64, "base64");
+  }
+
+  const imgUrl = item?.url || item?.image_url || item?.output_url || payload?.url || payload?.image_url;
+  if (imgUrl && typeof imgUrl === "string") {
+    return await fetchImageBufferFn(imgUrl);
+  }
+
+  // Xu ly truong hop Kira tra ve job_id / task_id bat dong bo
+  const jobId = payload?.job_id || payload?.task_id || payload?.id;
+  if (jobId && (payload?.status === "processing" || payload?.status === "pending" || payload?.status === "queued")) {
+    logStep(reqId, "KIRA_ASYNC_POLL", "JobID=" + jobId);
+    for (let p = 0; p < 8; p++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const pollRes = await axiosInstance.get("https://kiraai.vn/api/v1/images/generations/" + jobId, {
+          headers: { "Authorization": "Bearer " + kiraKey },
+          timeout: 10000
+        });
+        if (pollRes.data?.status === "succeeded" || pollRes.data?.status === "completed" || pollRes.data?.data) {
+          return await extractKiraImageBuffer(pollRes.data, axiosInstance, fetchImageBufferFn, kiraKey, reqId);
+        }
+        if (pollRes.data?.status === "failed") break;
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+
+app.get('/api/ai-stats', (req, res) => {
+  res.json({ status: "ok", stats: AI_STATS });
+});
+
 // __TRANHAI_STATIC_JS__
 app.use('/js', express.static(path.join(__dirname, 'js'), {
   setHeaders: (res) => {
@@ -697,124 +780,149 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                 const fullPrompt = promptText.length > 3500 ? promptText.substring(0, 3500) : promptText;
                 let aiBuf = null;
 
-                // Gọi Kira AI model agnes-image-2.1-flash với reference_images chuẩn để giữ khuôn mặt 100%
-                const KIRA_KEY = (process.env.KIRA_API_KEY || "kira_49d6e26b904fabb6fb6a889a3cd2dd5a").trim();
-                if (KIRA_KEY) {
-                    try {
-                        let refImages = [];
-                        if (imgUrl) {
-                            try {
-                                const userBuf = await fetchImageBuffer(imgUrl);
-                                if (userBuf && userBuf.length > 0) {
-                                    // Chuẩn hóa ảnh người dùng bằng sharp thành JPEG 1024x1024 chất lượng cao
-                                    // Giúp tối ưu dung lượng Base64 gửi lên Kira AI nhanh chóng (<300KB), không bị timeout và đảm bảo chuẩn định dạng JPEG 100%
-                                    const normJpeg = await sharp(userBuf)
-                                        .resize(1024, 1024, { fit: 'cover' })
-                                        .jpeg({ quality: 90 })
-                                        .toBuffer();
+                // === HỆ THỐNG TẠO ẢNH CHÍNH KIRA AI & DỰ PHÒNG GEMINI (CHUẨN HÓA) ===
+            const reqId = "REQ_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 6).toUpperCase();
+            const reqStartMs = Date.now();
+            AI_STATS.total_requests++;
 
-                                    refImages.push({
-                                        mime_type: "image/jpeg",
-                                        data: normJpeg.toString('base64')
-                                    });
-                                }
-                            } catch (bufErr) {
-                                console.error("Could not fetch user image buffer for reference:", bufErr.message);
-                            }
-                        }
+            const faceLockInstruction = " [STRICT FACE IDENTITY LOCK: Preserve the exact facial identity, eyes, nose, mouth, smile, expression, head pose, and number of people from the reference image without alteration.]";
+            const lockedPrompt = fullPrompt.includes("STRICT FACE IDENTITY") ? fullPrompt : (fullPrompt + faceLockInstruction);
 
-                        // BẢO VỆ TUYỆT ĐỐI: NẾU KHÔNG CÓ ẢNH THAM CHIẾU TỪ LOCKET -> KHÔNG ĐƯỢC PHÉP GỌI KIRA
-                        // VÌ NẾU GỌI TEXT-TO-IMAGE THUẦN, KIRA SẼ TỰ ĐỘNG VẼ RA MỘT NGƯỜI LẠ NGẪU NHIÊN!
-                        if (refImages.length === 0) {
-                            throw new Error("Không thể tải ảnh gốc từ Locket để làm reference_images, chuyển sang cơ chế ghép sticker để giữ nguyên ảnh gốc của người dùng.");
-                        }
+            const KIRA_KEY = (process.env.KIRA_API_KEY || "").trim();
+            const GEMINI_KEY = (process.env.GEMINI_API_KEY || "").trim();
 
-                        // Tối ưu prompt: Nếu prompt đã là mẫu chi tiết của Locket (bắt đầu bằng 'Show the persons in the photo' và đã khóa khuôn mặt/bố cục),
-                        // truyền trực tiếp nguyên bản để AI hiểu rõ nhất. Nếu là prompt ngắn, tự động bọc bộ khung khóa khuôn mặt & iPhone camera look.
-                        let facePrompt = fullPrompt;
-                        if (!facePrompt.includes("Keep the background, pose, framing") && !facePrompt.includes("Do not change the overall composition")) {
-                            facePrompt = `Show the persons in the photo with the exact same pose and background, but with ${fullPrompt}, captured with a modern iPhone camera look.\n\nAll enhancements and additions should remain confined strictly to the added elements. Do not alter the overall head size, face shape, facial features, eyes, smile, expression, or identity. Preserve natural skin texture, pores, and lighting so the elements integrate realistically with the environment.\n\nApply modern iPhone camera characteristics across the entire image: natural HDR, crisp facial detail, balanced highlights and shadows, and slightly vibrant but realistic colors. The additions should inherit this same processing so they feel captured in-camera.\n\nKeep the background, pose, framing, depth of field, and image quality exactly the same. Do not change the overall composition of the photo, do not add new people to the photo, only show each person in the photo one time.`;
-                        }
-
-                        const kPayload = {
-                            model: "agnes-image-2.1-flash",
-                            prompt: facePrompt,
-                            aspect_ratio: "1:1",
-                            reference_images: refImages
-                        };
-
-                        const kRes = await axios.post('https://kiraai.vn/api/v1/images/generations', kPayload, {
-                            headers: {
-                                "Authorization": `Bearer ${KIRA_KEY}`,
-                                "Content-Type": "application/json"
-                            },
-                            timeout: 35000
-                        });
-
-                        const item = kRes.data?.data?.[0];
-                        if (item?.b64_json) {
-                            aiBuf = Buffer.from(item.b64_json, 'base64');
-                        } else if (item?.url) {
-                            aiBuf = await fetchImageBuffer(item.url);
-                        }
-                    } catch (kErr) {
-                        console.error("Kira AI generation failed, falling back to sticker overlay:", kErr.response?.data || kErr.message);
-                    }
-                }
-
-      // === [AUTO-FALLBACK] CHUYEN SANG GEMINI API NEU API 1 THAT BAI ===
-      if (!aiBuf) {
-        const GEMINI_KEY = (process.env.GEMINI_API_KEY || "AQ.Ab8RN6LjaaO7_8d9b1-NTu72UKrXg7FWV33cRWFgAnFwyfaSZA").trim();
-        if (GEMINI_KEY) {
-          try {
-            console.log("🔄 API 1 that bai, dang chuyen sang Gemini API du phong...");
-            const isOAuthToken = false;
-            const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent" + (isOAuthToken ? "" : ("?key=" + GEMINI_KEY));
-            const reqHeaders = { "Content-Type": "application/json" };
-            if (isOAuthToken) reqHeaders["Authorization"] = "Bearer " + GEMINI_KEY;
-
-            let parts = [{ text: fullPrompt }];
-            if (typeof imgUrl !== "undefined" && imgUrl) {
+            // Chuan bị anh tham chieu (Reference Image) giu nguyen ty le khuon mat
+            let refImages = [];
+            let userNormalizedBuf = null;
+            if (imgUrl) {
               try {
-                const uBuf = await fetchImageBuffer(imgUrl);
-                if (uBuf && uBuf.length > 0) {
-                  parts.push({ inlineData: { mimeType: "image/jpeg", data: uBuf.toString("base64") } });
+                const userBuf = await fetchImageBuffer(imgUrl);
+                if (userBuf && userBuf.length > 0) {
+                  userNormalizedBuf = await sharp(userBuf)
+                    .rotate()
+                    .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+                    .jpeg({ quality: 90 })
+                    .toBuffer();
+                  refImages.push("data:image/jpeg;base64," + userNormalizedBuf.toString("base64"));
                 }
-              } catch (_) {}
+              } catch (imgErr) {
+                logStep(reqId, "INPUT_IMAGE_ERROR", imgErr.message);
+              }
             }
 
-            const gemRes = await fetch(geminiEndpoint, {
-              method: "POST",
-              headers: reqHeaders,
-              body: JSON.stringify({
-                contents: [{ parts }],
-                generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-              })
-            });
-
-            const gemJson = await gemRes.json();
-            const candParts = (gemJson.candidates && gemJson.candidates[0] && gemJson.candidates[0].content && gemJson.candidates[0].content.parts) || [];
-            const imgPart = candParts.find(p => p.inlineData && p.inlineData.data);
-            if (imgPart) {
-              aiBuf = Buffer.from(imgPart.inlineData.data, "base64");
-              console.log("✅ Tao anh bang Gemini API du phong thanh cong!");
+            // BƯỚC 1: ƯU TIÊN GỌI KIRA AI (MODEL: agnes-image-2.1-flash)
+            if (!KIRA_KEY) {
+              logStep(reqId, "KIRA_FAILED", "CONFIG_ERROR: Missing process.env.KIRA_API_KEY on Render");
+              AI_STATS.kira_failed++;
             } else {
-              console.warn("⚠️ Gemini API khong tra ve anh:", JSON.stringify(gemJson));
+              logStep(reqId, "KIRA_START", "model=agnes-image-2.1-flash | refImages=" + refImages.length);
+              const maxKiraAttempts = 2;
+              for (let attempt = 1; attempt <= maxKiraAttempts; attempt++) {
+                try {
+                  const kiraPayload = {
+                    model: "agnes-image-2.1-flash",
+                    prompt: lockedPrompt,
+                    aspect_ratio: "1:1"
+                  };
+                  if (refImages.length > 0) {
+                    kiraPayload.reference_images = refImages;
+                  }
+
+                  const kRes = await axios.post("https://kiraai.vn/api/v1/images/generations", kiraPayload, {
+                    headers: {
+                      "Authorization": `Bearer ${KIRA_KEY}`,
+                      "Content-Type": "application/json"
+                    },
+                    timeout: 45000
+                  });
+
+                  const candidateBuf = await extractKiraImageBuffer(kRes.data, axios, fetchImageBuffer, KIRA_KEY, reqId);
+                  if (candidateBuf && candidateBuf.length > 1000) {
+                    aiBuf = candidateBuf;
+                    AI_STATS.kira_success++;
+                    logStep(reqId, "KIRA_SUCCESS", `attempt=${attempt} | bytes=${aiBuf.length} | ms=${Date.now() - reqStartMs}`);
+                    break;
+                  } else {
+                    logStep(reqId, "KIRA_INVALID_RESPONSE", JSON.stringify(kRes.data || {}).slice(0, 300));
+                  }
+                } catch (kErr) {
+                  const status = kErr.response?.status || "NETWORK_TIMEOUT";
+                  const errBody = JSON.stringify(kErr.response?.data || kErr.message || "");
+                  logStep(reqId, `KIRA_HTTP_${status}`, `attempt=${attempt} | ${errBody}`);
+
+                  // Phan loai loi: Neu la AgnesAI_error (Upstream pool node het quota 5h), 429, hoac 5xx -> cho phep retry sang node khac
+                  const isTransientPoolError = errBody.includes("AgnesAI_error") || status === 429 || (typeof status === "number" && status >= 500) || status === "NETWORK_TIMEOUT";
+                  if (attempt < maxKiraAttempts && isTransientPoolError) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    continue;
+                  }
+                  AI_STATS.kira_failed++;
+                  logStep(reqId, "KIRA_FAILED", `status=${status}`);
+                  break;
+                }
+              }
             }
-          } catch (gemErr) {
-            console.error("❌ Loi khi goi Gemini API du phong:", gemErr.message);
-          }
-        }
-      }
 
+            // BƯỚC 2: DỰ PHÒNG SANG GEMINI API KHI KIRA AI THỰC SỰ THẤT BẠI
+            if (!aiBuf) {
+              if (!GEMINI_KEY) {
+                logStep(reqId, "GEMINI_FAILED", "CONFIG_ERROR: Missing process.env.GEMINI_API_KEY on Render");
+              } else {
+                AI_STATS.gemini_called++;
+                logStep(reqId, "GEMINI_FALLBACK_START", "model=gemini-2.5-flash-image");
+                try {
+                  const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + encodeURIComponent(GEMINI_KEY);
+                  const parts = [{ text: lockedPrompt }];
+                  if (userNormalizedBuf && userNormalizedBuf.length > 0) {
+                    parts.push({ inlineData: { mimeType: "image/jpeg", data: userNormalizedBuf.toString("base64") } });
+                  }
 
-                if (aiBuf && aiBuf.length > 1000) {
+                  const gemRes = await fetch(geminiEndpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
+                    body: JSON.stringify({
+                      contents: [{ parts }],
+                      generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+                    })
+                  });
+
+                  const gemJson = await gemRes.json();
+                  const candParts = gemJson?.candidates?.[0]?.content?.parts || [];
+                  const imgPart = candParts.find(p => p.inlineData && p.inlineData.data);
+                  if (imgPart) {
+                    const gemBuf = Buffer.from(imgPart.inlineData.data, "base64");
+                    if (gemBuf.length > 1000) {
+                      aiBuf = gemBuf;
+                      AI_STATS.gemini_success++;
+                      logStep(reqId, "GEMINI_SUCCESS", `bytes=${aiBuf.length}`);
+                    }
+                  } else {
+                    AI_STATS.gemini_failed++;
+                    const errCode = gemJson?.error?.status || gemJson?.error?.code || gemRes.status;
+                    logStep(reqId, "GEMINI_FAILED", `code=${errCode} | ${gemJson?.error?.message || "No image returned"}`);
+                  }
+                } catch (gemErr) {
+                  AI_STATS.gemini_failed++;
+                  logStep(reqId, "GEMINI_FAILED", gemErr.message);
+                }
+              }
+            }
+
+            if (!aiBuf) {
+              AI_STATS.sticker_fallback++;
+              logStep(reqId, "STICKER_FALLBACK", "Switching to Sticker Overlay / Frame pipeline");
+            }
+            const totalElapsed = Date.now() - reqStartMs;
+            AI_STATS.total_duration_ms += totalElapsed;
+            AI_STATS.avg_duration_ms = Math.round(AI_STATS.total_duration_ms / AI_STATS.total_requests);
+          
+          if (aiBuf && aiBuf.length > 1000) {
                     const fileName = `ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
                     const outPath = path.join(IMAGES_DIR, fileName);
 
                     // Chuẩn hóa ảnh JPEG bằng sharp
                     await sharp(aiBuf)
-                        .resize(1024, 1024, { fit: 'cover' })
+                        .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
                         .jpeg({ quality: 92 })
                         .toFile(outPath);
 
