@@ -816,11 +816,18 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
               AI_STATS.kira_failed++;
             } else {
               logStep(reqId, "KIRA_START", "model=agnes-image-2.1-flash | refImages=" + refImages.length);
-              const maxKiraAttempts = 2;
-              for (let attempt = 1; attempt <= maxKiraAttempts; attempt++) {
+              const kiraModelsOrder = [
+                "agnes-image-2.1-flash",
+                "gemini-nano-banana-2.1",
+                "gemini-2.5-flash-image",
+                "qwen-image-edit"
+              ];
+              for (let i = 0; i < kiraModelsOrder.length; i++) {
+                const currentKiraModel = kiraModelsOrder[i];
                 try {
+                  logStep(reqId, "KIRA_ATTEMPT", "model=" + currentKiraModel + " | step=" + (i + 1) + "/" + kiraModelsOrder.length);
                   const kiraPayload = {
-                    model: "agnes-image-2.1-flash",
+                    model: currentKiraModel,
                     prompt: lockedPrompt,
                     aspect_ratio: "1:1"
                   };
@@ -840,25 +847,27 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                   if (candidateBuf && candidateBuf.length > 1000) {
                     aiBuf = candidateBuf;
                     AI_STATS.kira_success++;
-                    logStep(reqId, "KIRA_SUCCESS", `attempt=${attempt} | bytes=${aiBuf.length} | ms=${Date.now() - reqStartMs}`);
+                    logStep(reqId, "KIRA_SUCCESS", `model=${currentKiraModel} | bytes=${aiBuf.length} | ms=${Date.now() - reqStartMs}`);
                     break;
                   } else {
-                    logStep(reqId, "KIRA_INVALID_RESPONSE", JSON.stringify(kRes.data || {}).slice(0, 300));
+                    logStep(reqId, "KIRA_INVALID_RESPONSE", `model=${currentKiraModel} | ` + JSON.stringify(kRes.data || {}).slice(0, 250));
                   }
                 } catch (kErr) {
                   const status = kErr.response?.status || "NETWORK_TIMEOUT";
                   const errBody = JSON.stringify(kErr.response?.data || kErr.message || "");
-                  logStep(reqId, `KIRA_HTTP_${status}`, `attempt=${attempt} | ${errBody}`);
+                  logStep(reqId, `KIRA_HTTP_${status}`, `model=${currentKiraModel} | ${errBody}`);
 
-                  // Phan loai loi: Neu la AgnesAI_error (Upstream pool node het quota 5h), 429, hoac 5xx -> cho phep retry sang node khac
-                  const isTransientPoolError = errBody.includes("AgnesAI_error") || status === 429 || (typeof status === "number" && status >= 500) || status === "NETWORK_TIMEOUT";
-                  if (attempt < maxKiraAttempts && isTransientPoolError) {
-                    await new Promise(r => setTimeout(r, 1500));
-                    continue;
+                  // Neu loi 401 (Sai API Key) hoac het tien vi VND that su (vnd_balance_exhausted) thi dung ngay, khong thu model khac tren Kira
+                  if (status === 401 || errBody.includes("vnd_balance_exhausted")) {
+                    AI_STATS.kira_failed++;
+                    logStep(reqId, "KIRA_FAILED", `Fatal auth/wallet error on Kira: status=${status}`);
+                    break;
                   }
-                  AI_STATS.kira_failed++;
-                  logStep(reqId, "KIRA_FAILED", `status=${status}`);
-                  break;
+                  // Neu la AgnesAI_error (Upstream node het quota 5h) hoac 502/429 -> chuyen sang model tiep theo trong kiraModelsOrder
+                  if (i === kiraModelsOrder.length - 1) {
+                    AI_STATS.kira_failed++;
+                    logStep(reqId, "KIRA_FAILED", "All Kira AI image models exhausted/failed");
+                  }
                 }
               }
             }
