@@ -801,7 +801,7 @@ export default {
         });
       }
 
-      const KIRA_KEY = (env?.KIRA_API_KEY || "kira_ecd52009b0fb1973434aa883da5804cc").trim();
+      const KIRA_KEY = (env?.KIRA_API_KEY || "").trim();
       let aiImageUrl = "";
       let kiraStatus = "pending";
       let kiraError = "";
@@ -1674,3 +1674,4 @@ export default {
     });
   }
 };
+

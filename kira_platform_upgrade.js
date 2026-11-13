@@ -134,7 +134,7 @@ function createOrGetPendingTransaction(db, userId) {
 }
 
 async function generatePaymentQrImageBuffer(sharpLib, axiosLib, tx, user, settings) {
-  const qrUrl = "[https://img.vietqr.io/image/](https://img.vietqr.io/image/)" + settings.bankId + "-" + settings.accountNo + "-compact2.png?amount=" + tx.amount + "&addInfo=" + encodeURIComponent(tx.txCode) + "&accountName=" + encodeURIComponent(settings.accountName);
+  const qrUrl = "https://img.vietqr.io/image/" + settings.bankId + "-" + settings.accountNo + "-compact2.png?amount=" + tx.amount + "&addInfo=" + encodeURIComponent(tx.txCode) + "&accountName=" + encodeURIComponent(settings.accountName);
   const qrResp = await axiosLib.get(qrUrl, { responseType: "arraybuffer", timeout: 12000 });
   const qrPng = await sharpLib(Buffer.from(qrResp.data))
     .resize(540, 540, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
@@ -143,7 +143,7 @@ async function generatePaymentQrImageBuffer(sharpLib, axiosLib, tx, user, settin
 
   const limit = settings.dailyFreeLimit || 2;
   const svgStr = [
-    '<svg width="1024" height="1024" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">',
+    '<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">',
     '<rect width="1024" height="1024" fill="#0F172A"/>',
     '<rect x="52" y="36" width="920" height="952" rx="32" fill="#1E293B" stroke="#F59E0B" stroke-width="4"/>',
     '<text x="512" y="102" text-anchor="middle" fill="#F59E0B" font-size="34" font-family="Arial, sans-serif" font-weight="bold">HET LUOT MIEN PHI (' + limit + '/' + limit + ' LUOT/NGAY)</text>',
@@ -191,7 +191,7 @@ function registerRoutes(app) {
     const userId = String((req.body && req.body.userId) || (req.query && req.query.userId) || extractUserIdentity(req));
     const user = getOrCreateUser(db, userId);
     const tx = createOrGetPendingTransaction(db, userId);
-    const qrImageUrl = "[https://img.vietqr.io/image/](https://img.vietqr.io/image/)" + db.settings.bankId + "-" + db.settings.accountNo + "-compact2.png?amount=" + tx.amount + "&addInfo=" + encodeURIComponent(tx.txCode) + "&accountName=" + encodeURIComponent(db.settings.accountName);
+    const qrImageUrl = "https://img.vietqr.io/image/" + db.settings.bankId + "-" + db.settings.accountNo + "-compact2.png?amount=" + tx.amount + "&addInfo=" + encodeURIComponent(tx.txCode) + "&accountName=" + encodeURIComponent(db.settings.accountName);
     res.json({ status: "ok", transaction: tx, qrImageUrl: qrImageUrl, user: user });
   });
 
@@ -370,3 +370,4 @@ module.exports = {
   createOrGetPendingTransaction: createOrGetPendingTransaction,
   generatePaymentQrImageBuffer: generatePaymentQrImageBuffer
 };
+
