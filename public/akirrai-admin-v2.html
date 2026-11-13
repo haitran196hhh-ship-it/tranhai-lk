@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AKIRRAI Admin</title>
+<style>
+body{background:#101827;color:#eaf0ff;font:15px system-ui;max-width:950px;margin:30px auto;padding:16px}
+section{background:#1b2941;border:1px solid #40536e;padding:20px;border-radius:12px;margin:12px 0}
+input,button{padding:10px;border-radius:8px;margin:5px;background:#273957;color:white;border:1px solid #7587a0}
+button{cursor:pointer;background:#2458b0}
+table{border-collapse:collapse;width:100%}
+td,th{padding:10px;border-bottom:1px solid #40536e;text-align:left}
+</style>
+<h2>AKIRRAI • Quản lý đơn hàng</h2>
+<p>Đăng nhập bằng tài khoản Supabase Auth đã được cấp quyền Admin.</p>
+<section>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Mật khẩu">
+<button id="login">Đăng nhập</button>
+<button id="reload">Tải đơn hàng</button>
+<p id="status"></p>
+</section>
+<section>
+<table>
+<thead><tr>
+<th>Đơn</th><th>Mã CK</th><th>VND</th><th>Lượt</th><th>Trạng thái</th>
+</tr></thead>
+<tbody id="rows"></tbody>
+</table>
+</section>
+<script>
+let token="";
+const E=id=>document.getElementById(id);
+const msg=t=>E("status").textContent=t;
+
+async function api(url,opts={}){
+  const r=await fetch(url,{
+    ...opts,
+    headers:{
+      "Content-Type":"application/json",
+      ...(token?{Authorization:"Bearer "+token}:{})
+    }
+  });
+  const j=await r.json();
+  if(!r.ok)throw Error(j.error||r.status);
+  return j;
+}
+
+async function load(){
+  try{
+    const j=await api("/api/akirrai/v2/admin/orders");
+    E("rows").replaceChildren();
+
+    for(const o of j.orders){
+      const tr=document.createElement("tr");
+      for(const k of [
+        "order_id","payment_reference",
+        "amount_vnd","credits","status"
+      ]){
+        const td=document.createElement("td");
+        td.textContent=String(o[k]??"");
+        tr.appendChild(td);
+      }
+      E("rows").appendChild(tr);
+    }
+    msg("Đã tải "+j.orders.length+" đơn hàng");
+  }catch(e){msg(e.message)}
+}
+
+E("login").onclick=async()=>{
+  try{
+    const j=await api("/api/akirrai/v2/admin/login",{
+      method:"POST",
+      body:JSON.stringify({
+        email:E("email").value,
+        password:E("password").value
+      })
+    });
+    token=j.accessToken;
+    E("password").value="";
+    await load();
+  }catch(e){msg(e.message)}
+};
+E("reload").onclick=load;
+</script>
+</html>

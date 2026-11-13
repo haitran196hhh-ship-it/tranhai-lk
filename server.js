@@ -33,6 +33,7 @@ try {
     console.error("Could not load ai_prompts.json:", e);
 }
 
+require('./akirrai_sepay_bridge').installWebhook(app, express);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -158,6 +159,7 @@ app.get('/api/ai-stats', (req, res) => {
 });
 
 const kiraPlatform = require("./kira_platform_upgrade");
+require('./akirrai_sepay_bridge').installRoutes(app);
 kiraPlatform.registerRoutes(app);
 // __TRANHAI_STATIC_JS__
 app.use('/js', express.static(path.join(__dirname, 'js'), {
