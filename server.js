@@ -794,6 +794,8 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
 
         // 1. ƯU TIÊN SỐ 1: TẠO ẢNH AI TỪ PROMPT TRONG data/ai_prompts.json (SỬ DỤNG KIRA AI AGNES 2.1 FLASH - GIỮ KHUÔN MẶT)
         if (promptText) {
+            let reservedAi = null;
+            let deliveredAi = false;
             try {
                 // Hỗ trợ prompt chi tiết đầy đủ (lên đến 3500 ký tự cho các prompt camera-lock)
                 const fullPrompt = promptText.length > 3500 ? promptText.substring(0, 3500) : promptText;
@@ -807,30 +809,20 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             const faceLockInstruction = " [STRICT FACE IDENTITY LOCK: Preserve the exact facial identity, eyes, nose, mouth, smile, expression, head pose, and number of people from the reference image without alteration.]";
             const lockedPrompt = fullPrompt.includes("STRICT FACE IDENTITY") ? fullPrompt : (fullPrompt + faceLockInstruction);
 
-            // __QUOTA_ENFORCEMENT_GATE__
-            const isStaticFrameOnly = /^(ptb_|frame_|collage_|2cut|3cut|4cut|6cut|8cut|tet_|noel_)/i.test(cleanFid);
-            const currentUserId = kiraPlatform.extractUserIdentity(req);
-            const dbQuota = kiraPlatform.loadDb();
-            const currentUserObj = kiraPlatform.getOrCreateUser(dbQuota, currentUserId);
-            const isUserAdmin = Boolean(req.isAdminUnlimited || currentUserObj.unlimited || currentUserId === "tranhai307");
-            let quotaConsumptionType = "NONE";
-            if (!isStaticFrameOnly) {
-              if (currentUserObj.status === "banned") {
-                logStep(reqId, "USER_BANNED", "userId=" + currentUserId);
-              } else if (isUserAdmin) {
-                quotaConsumptionType = "ADMIN_UNLIMITED";
-              } else if (currentUserObj.dailyFreeUsed < dbQuota.settings.dailyFreeLimit) {
-                quotaConsumptionType = "FREE_DAILY";
-              } else if (currentUserObj.paidCredits > 0) {
-                quotaConsumptionType = "PAID_CREDIT";
-              } else {
-                const pendingTx = kiraPlatform.createOrGetPendingTransaction(dbQuota, currentUserId);
-                logStep(reqId, "QUOTA_EXCEEDED_SHOW_QR", "userId=" + currentUserId + " | tx=" + pendingTx.txCode);
-                try { aiBuf = await kiraPlatform.generatePaymentQrImageBuffer(sharp, axios, pendingTx, currentUserObj, dbQuota.settings); } catch (qrErr) { logStep(reqId, "QR_GEN_ERROR", qrErr.message); }
-              }
-            }
-            const KIRA_KEY = (isStaticFrameOnly || quotaConsumptionType === "NONE") ? "" : (process.env.KIRA_API_KEY || "").trim();
-            const GEMINI_KEY = (process.env.GEMINI_API_KEY || "").trim();
+            const secure = require('./akirrai_sepay_bridge');
+            const currentUser = await secure.member(req);
+            const requestKey = String(req.headers['idempotency-key'] || '');
+            if (!/^[A-Za-z0-9_.:-]{8,128}$/.test(requestKey))
+              return res.status(400).json({error:'Idempotency-Key required (8-128 characters)'});
+            if (!/^[A-Za-z0-9_.:-]{2,100}$/.test(cleanFid))
+              return res.status(400).json({error:'Select a configured AI effect'});
+            const job = await secure.db('POST','rpc/akirrai_reserve_ai_job',{
+              p_user_id:currentUser.internal_user_id,p_request_key:requestKey,p_filter_id:cleanFid
+            });
+            if (job.replayed) return res.status(409).json({error:'Request already submitted',job});
+            reservedAi = {userId:currentUser.internal_user_id,jobId:job.jobId};
+            const KIRA_KEY = (process.env.KIRA_API_KEY || '').trim();
+            const GEMINI_KEY = (process.env.GEMINI_API_KEY || '').trim();
 
             // Chuan bị anh tham chieu (Reference Image) giu nguyen ty le khuon mat
             let refImages = [];
@@ -880,7 +872,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
                   const candidateBuf = await extractKiraImageBuffer(kRes.data, axios, fetchImageBuffer, KIRA_KEY, reqId);
                   if (candidateBuf && candidateBuf.length > 1000) {
                     aiBuf = candidateBuf;
-                    AI_STATS.kira_success++; if (quotaConsumptionType === "FREE_DAILY") { currentUserObj.dailyFreeUsed += 1; currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); } else if (quotaConsumptionType === "PAID_CREDIT") { currentUserObj.paidCredits = Math.max(0, currentUserObj.paidCredits - 1); currentUserObj.totalImagesCreated += 1; kiraPlatform.saveDb(dbQuota); }
+                    AI_STATS.kira_success++;
                     logStep(reqId, "KIRA_SUCCESS", `attempt=${attempt} | bytes=${aiBuf.length} | ms=${Date.now() - reqStartMs}`);
                     break;
                   } else {
@@ -969,10 +961,20 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
 
                     const finalUrl = `${baseUrl}/images/${fileName}`;
                     addLog("RESPONSE", { filter_id: fid, outputUrl: finalUrl, type: "ai_generated_kira_agnes", prompt: fullPrompt.substring(0, 100) });
+                    deliveredAi = true;
                     return res.json(formatLocketResponse(finalUrl, { type: "ai_generated", engine: "kira_agnes_2.1_flash", prompt: fullPrompt }));
                 }
             } catch (aiErr) {
-                console.error("AI Generation failed, falling back to sticker overlay:", aiErr.message);
+                console.error("AI generation failed:", aiErr.message);
+                return res.status(aiErr.http || 503).json({error:aiErr.http ? aiErr.message : 'AI service unavailable'});
+            } finally {
+                if (reservedAi) {
+                  try {
+                    await require('./akirrai_sepay_bridge').db('POST','rpc/akirrai_settle_ai_job',{
+                      p_user_id:reservedAi.userId,p_job_id:reservedAi.jobId,p_success:deliveredAi
+                    });
+                  } catch (_) { console.error('AI_SETTLEMENT_RECONCILE_REQUIRED',reservedAi.jobId); }
+                }
             }
         }
 
@@ -1049,4 +1051,5 @@ setInterval(() => {
 app.listen(PORT, () => {
     console.log(`Locket Backend Mod Server is running on port ${PORT}`);
 });
+
 

@@ -1,0 +1,19 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AKIRRAI</title>
+<style>body{margin:auto;max-width:1000px;padding:30px;background:#0c1222;color:#eef3ff;font:16px system-ui}section{padding:24px;background:#18223a;border-radius:18px;margin:18px 0}input,button,select{padding:12px;border:1px solid #59719a;border-radius:8px;background:#223253;color:white;margin:6px;max-width:90%}button{cursor:pointer;background:#3864db}pre{white-space:pre-wrap;overflow-wrap:anywhere}img{max-width:100%;max-height:650px}small{color:#adc1e4}</style>
+<h1>AKIRRAI</h1><p>Tài khoản, tạo ảnh và thanh toán</p><p id="notice" role="status"></p>
+<section><h2>Đăng nhập Admin</h2><input id="email" type="email" value="haitran196hhh@gmail.com" autocomplete="username"><input id="password" type="password" placeholder="Mật khẩu" autocomplete="current-password"><button id="login">Đăng nhập</button><button id="logout">Đăng xuất</button><pre id="account"></pre></section>
+<section><h2>Tạo ảnh</h2><input id="photo" type="file" accept="image/png,image/jpeg,image/webp"><input id="effect" placeholder="Mã hiệu ứng AI trong catalog"><button id="generate">Tạo ảnh</button><pre id="result"></pre><img id="output" alt=""></section>
+<section><h2>Mua lượt</h2><input id="package" placeholder="Mã gói"><button id="packages">Xem gói</button><button id="buy">Tạo đơn</button><button id="status">Kiểm tra thanh toán</button><pre id="payment"></pre><img id="qr" alt=""></section>
+<section><h2>Quản trị</h2><button id="orders">Đơn hàng</button><button id="users">Thành viên</button><button id="catalog">Catalog</button><pre id="admin"></pre></section>
+<script>
+let token='',reference='';const el=id=>document.getElementById(id);const show=(id,x)=>el(id).textContent=typeof x==='string'?x:JSON.stringify(x,null,2);
+async function api(url,body,extra={}){const r=await fetch(url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...extra},body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw Error(j.error||('HTTP '+r.status));return j}
+function action(id,fn){el(id).onclick=async()=>{el(id).disabled=true;show('notice','Đang xử lý…');try{await fn();show('notice','Hoàn tất')}catch(e){show('notice',e.message)}finally{el(id).disabled=false}}}
+action('login',async()=>{const j=await api('/api/akirrai/v2/admin/login',{email:el('email').value,password:el('password').value});token=j.accessToken;el('password').value='';show('account',await api('/api/akirrai/v2/account'))});
+action('logout',async()=>{token='';show('account','Đã đăng xuất')});
+action('generate',async()=>{const f=el('photo').files[0];if(!f||f.size>10*1024*1024)throw Error('Chọn ảnh dưới 10 MB');const imageUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f)});const j=await api('/api/generateFilteredImage',{imageUrl,filter_id:el('effect').value},{'Idempotency-Key':crypto.randomUUID()});show('result',j);const find=x=>{if(typeof x==='string'&&/^https:\/\//.test(x))return x;if(x&&typeof x==='object')for(const v of Object.values(x)){const u=find(v);if(u)return u}};const url=find(j);if(url){el('output').src=url;el('output').alt='Kết quả tạo ảnh'}});
+action('packages',async()=>show('payment',await api('/api/akirrai/v2/packages')));
+action('buy',async()=>{const j=await api('/api/akirrai/v2/payments/create',{packageId:el('package').value});reference=j.reference;show('payment',j);el('qr').src=j.qrImageUrl});
+action('status',async()=>{if(!reference)throw Error('Tạo đơn trước');show('payment',await api('/api/akirrai/v2/payments/status/'+reference))});
+for(const [id,url]of [['orders','/api/akirrai/v2/admin/orders'],['users','/api/akirrai/v2/admin/users'],['catalog','/api/akirrai/catalog']])action(id,async()=>show('admin',await api(url)));
+</script></html>

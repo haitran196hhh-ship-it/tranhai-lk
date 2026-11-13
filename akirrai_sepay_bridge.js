@@ -95,7 +95,17 @@ async function member(req,admin=false) {
     "&select=internal_user_id,provider_uid,role,verification_status,account_status&limit=1"
   );
 
-  const u=rows?.[0];
+  let u=rows?.[0];
+  // Bootstrap only a confirmed Supabase identity belonging to the configured owner.
+  if (!u && auth.email_confirmed_at && env("AKIRRAI_ADMIN_EMAIL") &&
+      String(auth.email||"").toLowerCase()===env("AKIRRAI_ADMIN_EMAIL").toLowerCase()) {
+    const created=await db("POST","users",{
+      auth_user_id:auth.id,provider_uid:"auth:"+auth.id,
+      role:"SUPER_ADMIN",is_unlimited:true,
+      account_status:"ACTIVE",verification_status:"ADMIN_VERIFIED"
+    });
+    u=created?.[0];
+  }
 
   if (!u || u.account_status!=="ACTIVE" ||
       u.verification_status!=="ADMIN_VERIFIED")
@@ -194,18 +204,27 @@ function packages() {
 }
 
 function installRoutes(app) {
+  app.get('/api/akirrai/v2/account',guarded(async(req,res)=>{
+    const u=await member(req);
+    const rows=await db('GET','users?internal_user_id=eq.'+u.internal_user_id+'&select=role,paid_credits_balance,total_images_created');
+    return answer(res,200,rows[0]);
+  }));
+  app.get('/api/akirrai/v2/admin/users',guarded(async(req,res)=>{
+    await member(req,true);
+    return answer(res,200,{users:await db('GET','users?select=internal_user_id,provider_uid,role,account_status,verification_status,paid_credits_balance&limit=100')});
+  }));
+  app.get('/api/akirrai/v2/packages',(_req,res)=>answer(res,200,{packages:packages(),enabled:enabled()}));
+  app.get('/akirrai',(_req,res)=>res.sendFile(path.join(__dirname,'public','akirrai.html')));
+
   // Disable legacy payment mutations in secure mode
   app.use([
-    "/api/payment/create",
-    "/api/payment/webhook",
-    "/api/admin/approve-tx",
-    "/api/admin/user-action"
+    "/api/payment",
+    "/api/admin",
+    "/api/user/quota"
   ],(req,res,next)=>{
-    if (enabled())
-      return answer(res,410,{
+    return answer(res,410,{
         error:"Legacy payment disabled"
       });
-    next();
   });
 
   app.get("/api/akirrai/v2/payments/health",(_req,res)=>
@@ -372,4 +391,4 @@ function installRoutes(app) {
   });
 }
 
-module.exports={installWebhook,installRoutes};
+module.exports={installWebhook,installRoutes,member,db,validSignature};
