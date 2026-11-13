@@ -52,16 +52,23 @@ app.use((req, res, next) => {
     if (req.path !== '/api/logs' && req.path !== '/health') {
         addLog("REQUEST", {
             method: req.method,
-            url: req.url,
+            path: req.path,
             ip: req.ip,
-            body: req.body
+            hasBody: Boolean(req.body && Object.keys(req.body).length)
         });
     }
     next();
 });
 
 app.get('/api/logs', (req, res) => {
-    res.json({ count: requestLogs.length, logs: requestLogs });
+    const expected = Buffer.from(String(process.env.AKIRRAI_LOG_SECRET || ''));
+    const actual = Buffer.from(String(req.headers['x-akirrai-log-secret'] || ''));
+    if (expected.length < 32 || expected.length !== actual.length ||
+        !require('node:crypto').timingSafeEqual(expected,actual)) {
+      return res.status(404).json({error:'Not found'});
+    }
+    res.setHeader('Cache-Control','no-store');
+    return res.json({count:requestLogs.length,logs:requestLogs});
 });
 
 // Phục vụ ảnh tĩnh công khai
@@ -166,6 +173,7 @@ app.get('/Locket_Only_Cold.sgmodule', (req, res) => {
   res.sendFile(path.join(__dirname, 'Locket_Only_Cold.sgmodule'));
 });
 
+const CMS_STAGE6 = require('./akirrai_cms_stage6_runtime').install(app, __dirname);
 app.use('/assets', express.static(ASSETS_DIR, { maxAge: '1d' }));
 app.use(express.static(PUBLIC_DIR));
 
@@ -355,6 +363,8 @@ const CUSTOM_PB_LAYOUTS = {
 
 // Tính số bước chụp của bộ lọc Photobooth (2 ô, 3 ô hoặc 4 ô)
 function getPhotoboothTotalSteps(fid) {
+    const cmsLayout = CMS_STAGE6.layout(fid);
+    if (cmsLayout) return cmsLayout.slots.length;
     if (!fid) return 4;
     const lower = String(fid).toLowerCase();
     if (lower.includes("2cut") || lower.includes("2_cut") || lower.includes("2x1") || lower.includes("2_shot")) return 2;
@@ -376,6 +386,8 @@ function getPhotoboothCardUrl(stepNum, totalSteps, baseUrl) {
 
 // Kiểm tra bộ lọc Photobooth nhiều ô (2 cut, 3 cut, 4 cut)
 function isPhotoboothFilter(fid) {
+    if (CMS_STAGE6.has(fid, 'ptb')) return true;
+    if (CMS_STAGE6.has(fid, 'frame') || CMS_STAGE6.has(fid, 'sticker')) return false;
     if (!fid) return false;
     const lower = String(fid).toLowerCase();
     if (lower.startsWith("pb_single_") || lower.startsWith("khung_")) return false;
@@ -384,6 +396,7 @@ function isPhotoboothFilter(fid) {
 
 // Kiểm tra khung đơn 1 lượt chụp
 function isOverlayFrameFilter(fid) {
+    if (CMS_STAGE6.has(fid, 'frame') || CMS_STAGE6.has(fid, 'sticker')) return true;
     if (!fid) return false;
     if (isPhotoboothFilter(fid)) return false;
     const lower = String(fid).toLowerCase();
@@ -414,6 +427,8 @@ async function fetchImageBuffer(url) {
 
 // Tìm đường dẫn file khung PNG
 function resolveFramePath(fid) {
+    const cmsPath = CMS_STAGE6.asset(fid);
+    if (cmsPath) return cmsPath;
     const clean = String(fid).toLowerCase().replace(/^stk_/, "");
     const filename = FRAME_MAP[clean] || FRAME_MAP[fid] || `${clean}.png`;
     const framePath = path.join(ASSETS_DIR, 'frames', filename);
@@ -544,7 +559,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
         );
 
         if (!imgUrl) {
-            addLog("WARN", { message: "Missing imageUrl, returning empty result", body });
+            addLog("WARN", {message:"Missing imageUrl, returning empty result"});
             return res.status(200).json(formatLocketResponse(""));
         }
 
@@ -600,7 +615,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
             pbSessions.set(sessionKey, session);
 
             // Tìm file khung Photobooth PNG
-            const customLayout = CUSTOM_PB_LAYOUTS[fid];
+            const customLayout = CUSTOM_PB_LAYOUTS[fid] || CMS_STAGE6.layout(fid);
             const canvasWidth = customLayout ? customLayout.width : 1254;
             const canvasHeight = customLayout ? customLayout.height : 1254;
 
@@ -773,7 +788,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
         const rawFid = String(d.filter_id || d.filterId || d.prompt || d.id || req.query.filterId || "").trim();
         const cleanFid = rawFid.toLowerCase();
         const mappedFid = cleanFid.replace(/^stk_/, "");
-        const promptText = AI_PROMPTS[rawFid] || AI_PROMPTS[cleanFid] || AI_PROMPTS[mappedFid] || d.prompt || "";
+        const promptText = CMS_STAGE6.prompt(rawFid) || AI_PROMPTS[rawFid] || AI_PROMPTS[cleanFid] || AI_PROMPTS[mappedFid] || d.prompt || "";
 
         // 1. ƯU TIÊN SỐ 1: TẠO ẢNH AI TỪ PROMPT TRONG data/ai_prompts.json (SỬ DỤNG KIRA AI AGNES 2.1 FLASH - GIỮ KHUÔN MẶT)
         if (promptText) {
@@ -1009,7 +1024,7 @@ app.all(['/generateFilteredImage', '/api/generateFilteredImage'], async (req, re
     } catch (err) {
         console.error("Filter processing error:", err);
         const fallbackUrl = req.body?.data?.imageUrl || req.body?.data?.image_url || req.body?.imageUrl || req.body?.image_url || "";
-        addLog("ERROR", { message: err.message, fallbackUrl });
+        addLog("ERROR", {message:err.message});
         return res.status(200).json(formatLocketResponse(fallbackUrl));
     }
 });

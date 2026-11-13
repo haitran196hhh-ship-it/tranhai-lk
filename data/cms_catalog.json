@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-13T12:32:15.685Z",
+  "items": [
+    {
+      "id": "tran-hai",
+      "type": "ptb",
+      "name": "Trần Hải",
+      "category": "general",
+      "description": "rất đẹp vvvvv",
+      "enabled": true,
+      "updatedAt": "2026-11-13T09:06:11.316Z",
+      "layout": {
+        "width": 1080,
+        "height": 1080,
+        "slots": [
+          {
+            "left": 60,
+            "top": 60,
+            "width": 460,
+            "height": 460
+          },
+          {
+            "left": 560,
+            "top": 60,
+            "width": 460,
+            "height": 460
+          },
+          {
+            "left": 60,
+            "top": 560,
+            "width": 460,
+            "height": 460
+          },
+          {
+            "left": 560,
+            "top": 560,
+            "width": 460,
+            "height": 460
+          }
+        ]
+      },
+      "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg"
+    }
+  ]
+}

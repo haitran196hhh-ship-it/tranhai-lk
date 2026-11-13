@@ -204,10 +204,11 @@ function registerRoutes(app) {
   });
 
   app.post('/api/payment/webhook', function(req, res) {
-    const secret = process.env.PAYMENT_WEBHOOK_SECRET || process.env.ADMIN_KEY || "tranhai307";
-    const authHeader = req.headers['authorization'] || req.headers['x-webhook-secret'] || req.query.secret || "";
-    if (secret && !String(authHeader).includes(secret) && (!req.body || req.body.adminKey !== secret)) {
-      return res.status(401).json({ error: "Unauthorized webhook" });
+    const expected = Buffer.from(String(process.env.PAYMENT_WEBHOOK_SECRET || ''));
+    const actual = Buffer.from(String(req.headers['x-webhook-secret'] || ''));
+    if (expected.length < 32 || expected.length !== actual.length ||
+        !crypto.timingSafeEqual(expected,actual)) {
+      return res.status(401).json({error:'Unauthorized webhook'});
     }
     const content = String((req.body && (req.body.content || req.body.description || req.body.transferContent || req.body.txCode)) || "").toUpperCase();
     const amount = Number((req.body && (req.body.transferAmount || req.body.amount)) || 0);
@@ -253,9 +254,15 @@ function registerRoutes(app) {
   });
 
   function checkAdminAuth(req, res, next) {
-    const adminPass = process.env.ADMIN_KEY || "tranhai307";
-    const provided = req.headers['x-admin-key'] || req.query.adminKey || (req.body && req.body.adminKey);
-    if (provided !== adminPass) return res.status(401).json({ error: "Sai mat khau Admin" });
+    const expected = Buffer.from(String(process.env.ADMIN_SECRET || process.env.ADMIN_KEY || ''));
+    const actual = Buffer.from(String(req.headers['x-admin-key'] || ''));
+    if (expected.length < 24) {
+      return res.status(503).json({error:'Admin secret not configured'});
+    }
+    if (expected.length !== actual.length ||
+        !crypto.timingSafeEqual(expected,actual)) {
+      return res.status(401).json({error:'Unauthorized'});
+    }
     next();
   }
 

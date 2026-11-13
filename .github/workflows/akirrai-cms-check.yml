@@ -1,0 +1,17 @@
+name: AKIRRAI CMS checks
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: node --check server.js && node --check kira_platform_upgrade.js && node --check akirrai_cms_stage6_runtime.js
+      - run: node --test tests/cms.smoke.test.js
