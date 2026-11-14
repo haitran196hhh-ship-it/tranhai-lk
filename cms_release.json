@@ -1,10 +1,147 @@
 {
-  "version": "2026-11-13T12-32-15-693Z_ac2da52d",
+  "version": "ver_1794633450393",
   "createdAt": "2026-11-13T12:32:15.695Z",
-  "items": 1,
+  "items": [
+    {
+      "id": "tran-hai",
+      "name": "Trần Hải",
+      "type": "ptb",
+      "layout": {
+        "canvasWidth": 1024,
+        "canvasHeight": 1280,
+        "slots": [
+          {
+            "top": 77,
+            "left": 61,
+            "width": 430,
+            "height": 538
+          },
+          {
+            "top": 77,
+            "left": 532,
+            "width": 430,
+            "height": 538
+          },
+          {
+            "top": 666,
+            "left": 61,
+            "width": 430,
+            "height": 538
+          },
+          {
+            "top": 666,
+            "left": 532,
+            "width": 430,
+            "height": 538
+          }
+        ]
+      },
+      "enabled": true,
+      "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
+      "category": "general",
+      "updatedAt": "2026-11-13T09:06:11.316Z",
+      "description": "rất đẹp vvvvv"
+    }
+  ],
   "assets": [
     "assets/frames/cms_tran-hai_4ccbcec8e7.jpg"
   ],
   "moduleIntegrated": false,
-  "productionReady": false
+  "productionReady": false,
+  "updatedAt": "2026-11-14T05:17:30.393Z",
+  "publishedAt": "2026-11-14T05:17:30.393Z",
+  "captions": [],
+  "draft": {
+    "items": [
+      {
+        "id": "tran-hai",
+        "name": "Trần Hải",
+        "type": "ptb",
+        "layout": {
+          "canvasWidth": 1024,
+          "canvasHeight": 1280,
+          "slots": [
+            {
+              "top": 77,
+              "left": 61,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 77,
+              "left": 532,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 666,
+              "left": 61,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 666,
+              "left": 532,
+              "width": 430,
+              "height": 538
+            }
+          ]
+        },
+        "enabled": true,
+        "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
+        "category": "general",
+        "updatedAt": "2026-11-13T09:06:11.316Z",
+        "description": "rất đẹp vvvvv"
+      }
+    ],
+    "captions": [],
+    "updatedAt": "2026-11-14T05:17:30.393Z"
+  },
+  "published": {
+    "version": "ver_1794633450393",
+    "publishedAt": "2026-11-14T05:17:30.393Z",
+    "items": [
+      {
+        "id": "tran-hai",
+        "name": "Trần Hải",
+        "type": "ptb",
+        "layout": {
+          "canvasWidth": 1024,
+          "canvasHeight": 1280,
+          "slots": [
+            {
+              "top": 77,
+              "left": 61,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 77,
+              "left": 532,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 666,
+              "left": 61,
+              "width": 430,
+              "height": 538
+            },
+            {
+              "top": 666,
+              "left": 532,
+              "width": 430,
+              "height": 538
+            }
+          ]
+        },
+        "enabled": true,
+        "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
+        "category": "general",
+        "updatedAt": "2026-11-13T09:06:11.316Z",
+        "description": "rất đẹp vvvvv"
+      }
+    ],
+    "captions": []
+  }
 }
