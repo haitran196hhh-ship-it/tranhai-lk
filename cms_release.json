@@ -1,5 +1,5 @@
 {
-  "version": "ver_1794634232747",
+  "version": "ver_1794634737461",
   "createdAt": "2026-11-13T12:32:15.695Z",
   "items": [
     {
@@ -40,7 +40,9 @@
       "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
       "category": "general",
       "updatedAt": "2026-11-13T09:06:11.316Z",
-      "description": "rất đẹp vvvvv"
+      "description": "rất đẹp vvvvv",
+      "title": "Trần Hải",
+      "fullAssetUrl": "https://tranhai-lk.onrender.com/assets/frames/cms_tran-hai_4ccbcec8e7.jpg"
     }
   ],
   "assets": [
@@ -48,10 +50,11 @@
   ],
   "moduleIntegrated": false,
   "productionReady": false,
-  "updatedAt": "2026-11-14T05:30:32.747Z",
-  "publishedAt": "2026-11-14T05:30:32.747Z",
+  "updatedAt": "2026-11-14T05:38:57.461Z",
+  "publishedAt": "2026-11-14T05:38:57.461Z",
   "captions": [],
   "draft": {
+    "schemaVersion": 1,
     "items": [
       {
         "id": "tran-hai",
@@ -91,15 +94,18 @@
         "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
         "category": "general",
         "updatedAt": "2026-11-13T09:06:11.316Z",
-        "description": "rất đẹp vvvvv"
+        "description": "rất đẹp vvvvv",
+        "title": "Trần Hải",
+        "fullAssetUrl": "https://tranhai-lk.onrender.com/assets/frames/cms_tran-hai_4ccbcec8e7.jpg"
       }
     ],
     "captions": [],
-    "updatedAt": "2026-11-14T05:30:32.747Z"
+    "updatedAt": "2026-11-14T05:38:57.461Z"
   },
   "published": {
-    "version": "ver_1794634232747",
-    "publishedAt": "2026-11-14T05:30:32.747Z",
+    "schemaVersion": 1,
+    "version": "ver_1794634737461",
+    "publishedAt": "2026-11-14T05:38:57.461Z",
     "items": [
       {
         "id": "tran-hai",
@@ -139,9 +145,12 @@
         "assetUrl": "/assets/frames/cms_tran-hai_4ccbcec8e7.jpg",
         "category": "general",
         "updatedAt": "2026-11-13T09:06:11.316Z",
-        "description": "rất đẹp vvvvv"
+        "description": "rất đẹp vvvvv",
+        "title": "Trần Hải",
+        "fullAssetUrl": "https://tranhai-lk.onrender.com/assets/frames/cms_tran-hai_4ccbcec8e7.jpg"
       }
     ],
     "captions": []
-  }
+  },
+  "schemaVersion": 1
 }
