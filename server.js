@@ -1071,8 +1071,9 @@ app.use("/modules", express.static(path.join(__dirname, "modules"), { maxAge: 0 
 app.use("/assets", express.static(path.join(__dirname, "assets"), { maxAge: 0 }));
 
 // Phuc vu truc tiep cac file .sgmodule va .conf qua duong dan Render (An toan khi GitHub repo o che do Private)
-app.get("/:modFile(*.sgmodule|*.conf|*.module)", (req, res, next) => {
-  const fname = path.basename(req.params.modFile);
+app.get("/:modFile", (req, res, next) => {
+  const fname = path.basename(String(req.params.modFile || ""));
+  if (!/\.(sgmodule|conf|module)$/i.test(fname)) return next();
   const rootCandidate = path.join(__dirname, fname);
   const subCandidate = path.join(__dirname, "modules", fname);
   const target = fs.existsSync(rootCandidate) ? rootCandidate : (fs.existsSync(subCandidate) ? subCandidate : null);
@@ -1081,7 +1082,7 @@ app.get("/:modFile(*.sgmodule|*.conf|*.module)", (req, res, next) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     return res.send(fs.readFileSync(target, "utf8"));
   }
-  next();
+  return next();
 });
 
 // Dam bao /api/akirrai/catalog luon tra ve danh sach hop nhat moi nhat tu cms_release.json
