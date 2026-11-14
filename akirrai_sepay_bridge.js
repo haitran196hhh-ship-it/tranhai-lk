@@ -155,10 +155,10 @@ const normalize=v=>String(v||"")
   .toUpperCase();
 
 function installWebhook(app,express) {
-  // MUST run before express.json()
+  // MUST run before express.json({ limit: "50mb" })
   app.post(
     "/api/akirrai/sepay/webhook",
-    express.raw({type:"application/json",limit:"64kb"}),
+    express.raw({type:"application/json",limit: "50mb"}),
     guarded(async(req,res)=>{
       if (!enabled())
         return answer(res,503,{success:false});

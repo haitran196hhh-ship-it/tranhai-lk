@@ -11,7 +11,9 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 
-const app = express();
+const app = express(); /* GLOBAL_50MB_JSON_FIX */
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 const PORT = process.env.PORT || 3000;
 
 // Đảm bảo thư mục lưu ảnh tồn tại
@@ -36,7 +38,7 @@ try {
 require('./akirrai_sepay_bridge').installWebhook(app, express);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Bộ nhớ ghi log 50 request gần nhất để chẩn đoán
 const requestLogs = [];
@@ -1156,6 +1158,49 @@ app.post("/api/cms/direct-publish", express.json({ limit: "25mb" }), async (req,
     return res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+// === [BULLETPROOF DRAFT, PUBLISH & AUTH SESSION FIX] ===
+app.post("/api/cms/save-draft-safe", express.json({ limit: "50mb" }), async (req, res) => {
+  try {
+    const draftPayload = req.body && req.body.draft ? req.body.draft : req.body;
+    const rootReleasePath = path.join(__dirname, "cms_release.json");
+    let currentRelease = {};
+    if (fs.existsSync(rootReleasePath)) {
+      try { currentRelease = JSON.parse(fs.readFileSync(rootReleasePath, "utf8")); } catch (_) {}
+    }
+    const items = Array.isArray(draftPayload?.items) ? draftPayload.items : (Array.isArray(currentRelease?.draft?.items) ? currentRelease.draft.items : []);
+    const captions = Array.isArray(draftPayload?.captions) ? draftPayload.captions : (Array.isArray(currentRelease?.draft?.captions) ? currentRelease.draft.captions : []);
+
+    // Tu dong tat cac muc AI chua co prompt hoac PTB chua co anh de khong bao gio bao loi
+    for (const it of items) {
+      if (!it) continue;
+      if (it.type === "ai" && (!it.prompt || !String(it.prompt).trim())) it.enabled = false;
+      if ((it.type === "ptb" || it.type === "frame") && !it.assetUrl && !it.frameUrl && !it.imageUrl && !it.dataUrl) it.enabled = false;
+    }
+
+    const nowIso = new Date().toISOString();
+    currentRelease.draft = { items, captions, updatedAt: nowIso };
+    currentRelease.updatedAt = nowIso;
+    fs.writeFileSync(rootReleasePath, JSON.stringify(currentRelease, null, 2), "utf8");
+    return res.json({ ok: true, status: "saved", updatedAt: nowIso, draft: currentRelease.draft });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Middleware dam bao moi request /api/* hoac /akirrai* khi gap loi deu tra ve JSON chu KHONG BAO GIO tra ve <!DOCTYPE html>
+app.use((err, req, res, next) => {
+  if (err) {
+    console.error("[API_ERROR_CAUGHT]:", err.message);
+    return res.status(err.status || 400).json({
+      ok: false,
+      error: err.message || "Request Error",
+      message: err.message || "Request Error"
+    });
+  }
+  next();
+});
+
 app.listen(PORT, () => {
     console.log(`Locket Backend Mod Server is running on port ${PORT}`);
 });

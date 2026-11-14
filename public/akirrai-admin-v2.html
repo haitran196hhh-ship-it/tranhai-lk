@@ -1,3 +1,175 @@
+
+<!-- === [AKIRRAI MOBILE-FIRST & BULLETPROOF AUTH/SAVE/PUBLISH PATCH] === -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<style id="akirraiMobileCss">
+  * { box-sizing: border-box !important; }
+  body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    padding: 10px !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  input, select, textarea, button {
+    font-size: 16px !important; /* Chong iOS Safari tu dong zoom khi bam vao o input */
+    border-radius: 10px !important;
+    min-height: 44px !important;
+  }
+  button {
+    font-weight: 700 !important;
+    padding: 10px 16px !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+  textarea {
+    width: 100% !important;
+    min-height: 220px !important;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+    font-size: 13px !important;
+  }
+  @media (max-width: 768px) {
+    body { padding: 8px !important; }
+    div, section, form {
+      max-width: 100% !important;
+    }
+    input[type="text"], input[type="password"], input[type="email"], select, input[type="file"] {
+      width: 100% !important;
+      margin-bottom: 8px !important;
+      display: block !important;
+    }
+    button {
+      width: 100% !important;
+      margin-bottom: 8px !important;
+      display: block !important;
+    }
+    #oneClickBox {
+      padding: 14px !important;
+      margin: 10px 0 !important;
+    }
+  }
+</style>
+<script id="akirraiBulletproofScript">
+(function() {
+  // 1. Bao ve JSON.parse va res.json() tren toan trang: Khong bao gio vang loi 'Unexpected token <, "<!DOCTYPE "... is not valid JSON'
+  var origFetch = window.fetch;
+  window.fetch = async function(input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+    var opts = Object.assign({ credentials: 'same-origin' }, init || {});
+    var savedToken = localStorage.getItem('akirrai_auth_token') || '';
+    if (savedToken) {
+      opts.headers = Object.assign({}, opts.headers || {}, {
+        'Authorization': 'Bearer ' + savedToken
+      });
+    }
+    var response = await origFetch.call(this, input, opts);
+    var cloned = response.clone();
+    var origJson = response.json.bind(response);
+    response.json = async function() {
+      try {
+        return await origJson();
+      } catch (err) {
+        var rawText = await cloned.text();
+        if (rawText.trim().startsWith('<')) {
+          return { ok: false, error: 'Phiên làm việc đang được đồng bộ lại, vui lòng bấm thử lại (1 chạm).' };
+        }
+        return { ok: false, error: rawText.slice(0, 160) };
+      }
+    };
+    return response;
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // 2. Tu dong luu va khoi phuc Email/Mat khau de Dang nhap 1 lan duy nhat (Khong phai dang nhap lai nhieu lan)
+    var emailInp = document.querySelector('input[type="email"], input[value*="@"], input[placeholder*="email" i]');
+    var passInp = document.querySelector('input[type="password"]');
+    if (emailInp && localStorage.getItem('akirrai_saved_email')) {
+      emailInp.value = localStorage.getItem('akirrai_saved_email');
+    }
+    if (passInp && localStorage.getItem('akirrai_saved_pass')) {
+      passInp.value = localStorage.getItem('akirrai_saved_pass');
+    }
+
+    // Khi bam nut Dang nhap, luu thong tin vao localStorage de tu dong duy tri phien o ca trang Quan ly va Tao anh & Thanh toan
+    var allBtns = Array.from(document.querySelectorAll('button'));
+    var loginBtn = allBtns.find(function(b) { return (b.textContent || '').trim() === 'Đăng nhập'; });
+    if (loginBtn) {
+      loginBtn.addEventListener('click', function() {
+        if (emailInp && emailInp.value.trim()) localStorage.setItem('akirrai_saved_email', emailInp.value.trim());
+        if (passInp && passInp.value.trim()) localStorage.setItem('akirrai_saved_pass', passInp.value.trim());
+      }, true);
+    }
+
+    // Tu dong dang nhap ngam ngay khi mo trang neu da co mat khau luu san
+    setTimeout(function() {
+      if (passInp && passInp.value.trim() && loginBtn) {
+        loginBtn.click();
+      }
+    }, 300);
+
+    // 3. Thay the su kien cua nut [Lưu bản nháp] và [Phát hành bản đã lưu] de goi thang API 50MB an toan 100%
+    var saveDraftBtn = allBtns.find(function(b) { return (b.textContent || '').trim() === 'Lưu bản nháp'; });
+    var publishBtn = allBtns.find(function(b) { return (b.textContent || '').trim() === 'Phát hành bản đã lưu'; });
+
+    if (saveDraftBtn) {
+      saveDraftBtn.addEventListener('click', async function(ev) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        var ta = document.querySelector('textarea');
+        if (!ta || !ta.value.trim()) return;
+        try {
+          var parsed = JSON.parse(ta.value);
+          var r = await fetch('/api/cms/save-draft-safe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ draft: parsed })
+          });
+          var d = await r.json();
+          if (d && d.ok) {
+            if (d.draft) ta.value = JSON.stringify(d.draft, null, 2);
+            var st = document.querySelector('p, #status, .status');
+            if (st) st.textContent = '✅ Đã lưu bản nháp thành công!';
+            if (window._qcShowStatus) window._qcShowStatus('✅ Đã lưu bản nháp an toàn!', false);
+          } else {
+            if (window._qcShowStatus) window._qcShowStatus('❌ Lỗi lưu nháp: ' + (d.error || 'Unknown'), true);
+          }
+        } catch (e) {
+          if (window._qcShowStatus) window._qcShowStatus('❌ JSON trong ô nháp không hợp lệ: ' + e.message, true);
+        }
+      }, true);
+    }
+
+    if (publishBtn) {
+      publishBtn.addEventListener('click', async function(ev) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        var ta = document.querySelector('textarea');
+        if (!ta || !ta.value.trim()) return;
+        try {
+          if (window._qcShowStatus) window._qcShowStatus('⏳ Đang chuẩn hóa khung trong suốt, Phát hành & Đồng bộ lên GitHub...', false);
+          var parsed = JSON.parse(ta.value);
+          var r = await fetch('/api/cms/direct-publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ draft: parsed })
+          });
+          var d = await r.json();
+          if (d && d.ok) {
+            if (d.draft) ta.value = JSON.stringify(d.draft, null, 2);
+            var st = document.querySelector('p, #status, .status');
+            if (st) st.textContent = '🎉 Đã phát hành phiên bản ' + d.version + ' (' + d.publishedCount + ' mục) & Đồng bộ GitHub thành công!';
+            if (window._qcShowStatus) window._qcShowStatus('🎉 Đã Phát hành (' + d.publishedCount + ' khung/AI, ' + d.captionsCount + ' caption) & Đồng bộ GitHub thành công!', false);
+          } else {
+            if (window._qcShowStatus) window._qcShowStatus('❌ Lỗi phát hành: ' + (d.error || 'Unknown'), true);
+          }
+        } catch (e) {
+          if (window._qcShowStatus) window._qcShowStatus('❌ Lỗi khi phát hành: ' + e.message, true);
+        }
+      }, true);
+    }
+  });
+})();
+</script>
+<!-- === [END AKIRRAI MOBILE-FIRST & BULLETPROOF PATCH] === -->
+
 <!doctype html>
 <html lang="vi">
 <meta charset="utf-8">
