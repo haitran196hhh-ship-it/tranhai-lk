@@ -1,5 +1,5 @@
 {
-  "version": "ver_1794633455389",
+  "version": "ver_1794633459193",
   "createdAt": "2026-11-13T12:32:15.695Z",
   "items": [
     {
@@ -48,8 +48,8 @@
   ],
   "moduleIntegrated": false,
   "productionReady": false,
-  "updatedAt": "2026-11-14T05:17:35.389Z",
-  "publishedAt": "2026-11-14T05:17:35.389Z",
+  "updatedAt": "2026-11-14T05:17:39.193Z",
+  "publishedAt": "2026-11-14T05:17:39.193Z",
   "captions": [],
   "draft": {
     "items": [
@@ -95,11 +95,11 @@
       }
     ],
     "captions": [],
-    "updatedAt": "2026-11-14T05:17:35.389Z"
+    "updatedAt": "2026-11-14T05:17:39.193Z"
   },
   "published": {
-    "version": "ver_1794633455389",
-    "publishedAt": "2026-11-14T05:17:35.389Z",
+    "version": "ver_1794633459193",
+    "publishedAt": "2026-11-14T05:17:39.193Z",
     "items": [
       {
         "id": "tran-hai",
