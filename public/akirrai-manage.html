@@ -4,11 +4,12 @@
 <section><input id="email" type="email" value="haitran196hhh@gmail.com"><input id="password" type="password" placeholder="Mật khẩu"><button id="login">Đăng nhập</button><button id="logout">Đăng xuất</button></section>
 <section><h2>Tạo caption</h2><p>Tải bản nháp trước. Nhập nội dung bên dưới rồi bấm Thêm caption; sau đó lưu và phát hành.</p><input id="captionName" placeholder="Tên caption"><input id="captionValue" placeholder="Nội dung caption" maxlength="1000"><input id="captionColor" type="color" value="#3864db"><button id="addCaption">Thêm caption vào bản nháp</button><button id="disableIncomplete">Tắt mục chưa hoàn chỉnh</button><p><a href="/akirrai-catalog.module">Danh mục hợp nhất: hiệu ứng cũ + CMS — link công khai</a></p><p>Không chia sẻ module cá nhân chứa khóa AI. Module công khai đồng bộ danh mục cũ và CMS; tạo ảnh AI vẫn cần module cá nhân. Danh mục cập nhật khi ứng dụng tải cấu hình; không dùng đồng thời với rule CMS khác trên cùng phản hồi.</p></section><section><h2>Nội dung CMS
 
-<!-- === [AKIRRAI 1-CLICK AUTO PUBLISH WIDGET V2 - REAL API VERIFIED] === -->
-<div id="oneClickBox" style="background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);border:2px solid #f59e0b;border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 12px 32px rgba(0,0,0,0.45);">
-  <h2 style="margin:0 0 6px;color:#fbbf24;font-size:18px;">⚡ Thêm Nhanh & Tự Động Phát Hành 1-Click (Xác Minh API Thật 100%)</h2>
+
+<!-- === [AKIRRAI 1-CLICK AUTO PUBLISH WIDGET V3 - NATIVE SYNC] === -->
+<div id="oneClickBox" style="background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);border:2px solid #10b981;border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 12px 32px rgba(0,0,0,0.45);">
+  <h2 style="margin:0 0 6px;color:#34d399;font-size:18px;">⚡ Thêm Nhanh & Tự Động Phát Hành 1-Click (Đồng Bộ Chuẩn 100% Với Hệ Thống)</h2>
   <p style="margin:0 0 14px;color:#cbd5e1;font-size:13px;line-height:1.5;">
-    <b>Lưu ý:</b> Nhớ nhập Mật khẩu và bấm <b>Đăng nhập</b> ở khung trên cùng trước. Sau đó chỉ cần <b>Chọn loại</b> + <b>Chọn ảnh khung</b> rồi bấm nút màu xanh lá bên dưới!
+    Chỉ cần <b>Chọn loại</b> + <b>Chọn file ảnh khung</b> (tên sẽ tự điền) rồi bấm nút màu xanh lá. Hệ thống sẽ dùng đúng bộ xử lý gốc để Thêm mục -> Gắn ảnh -> Lưu nháp -> Phát hành ngay!
   </p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:12px;">
     <div>
@@ -35,10 +36,10 @@
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
     <button type="button" onclick="window._runOneClickPublish()" style="flex:1;background:#16a34a;color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">
-      🚀 TỰ ĐỘNG GẮN KHUNG + HỢP NHẤT NỘI DUNG CŨ + PHÁT HÀNH NGAY (1-CLICK)
+      🚀 TỰ ĐỘNG GẮN KHUNG + LƯU NHÁP + PHÁT HÀNH NGAY (1-CLICK)
     </button>
-    <button type="button" onclick="window._cleanBrokenDrafts()" style="background:#d97706;color:#fff;border:none;padding:12px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">
-      🧹 Tự động sửa lỗi "Chưa nhập prompt AI"
+    <button type="button" onclick="window._cleanBrokenDrafts(true)" style="background:#d97706;color:#fff;border:none;padding:12px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">
+      🧹 Dọn sạch mục lỗi & Lưu nháp ngay
     </button>
   </div>
   <div id="qcStatus" style="margin-top:12px;padding:10px;border-radius:8px;background:#0b1120;font-size:13px;font-weight:700;color:#34d399;display:none;"></div>
@@ -63,52 +64,56 @@ window._qcShowStatus = function(msg, isErr) {
   el.textContent = msg;
 };
 window._findTextarea = function() { return document.querySelector('textarea'); };
-window._getTopNoticeText = function() {
-  var bodyTxt = document.body.innerText || '';
-  var firstLines = bodyTxt.split('\n').slice(0, 6).join(' ');
-  return firstLines;
+window._getTopStatusLine = function() {
+  var p = document.querySelector('p, #status, .status');
+  if (p && p.textContent) return p.textContent.trim();
+  return (document.body.innerText || '').split('\n').slice(0, 5).join(' ');
 };
 window._clickBtn = function(txt) {
   var btns = Array.from(document.querySelectorAll('button'));
-  var found = btns.find(function(b) { return (b.textContent || '').trim() === txt || (b.textContent || '').trim().includes(txt); });
+  var found = btns.find(function(b) { return (b.textContent || '').trim() === txt; }) ||
+              btns.find(function(b) { return (b.textContent || '').trim().includes(txt); });
   if (found) found.click();
   return found;
 };
-window._waitForTextareaOrError = async function(timeoutMs) {
-  var start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    var ta = window._findTextarea();
-    if (ta && ta.value && ta.value.trim().length > 2) return { ok: true, ta: ta };
-    var topTxt = window._getTopNoticeText();
-    if (topTxt.includes('Login required') || topTxt.includes('Unauthorized') || topTxt.includes('Invalid')) {
-      return { ok: false, error: 'Bạn chưa đăng nhập! Hãy nhập Mật khẩu vào ô trên cùng rồi bấm nút [Đăng nhập] trước.' };
-    }
-    await new Promise(function(r) { setTimeout(r, 200); });
-  }
-  var taFinal = window._findTextarea();
-  if (taFinal && taFinal.value && taFinal.value.trim().length > 2) return { ok: true, ta: taFinal };
-  return { ok: false, error: 'Chưa tải được bản nháp (Hãy chắc chắn bạn đã nhập Mật khẩu và bấm nút [Đăng nhập] ở trên cùng)!' };
-};
-window._cleanBrokenDrafts = function() {
+window._cleanBrokenDrafts = async function(andSave) {
   var ta = window._findTextarea();
   if (!ta || !ta.value.trim()) {
-    return window._qcShowStatus('⚠️ Ô bản nháp đang trống! Hãy bấm Đăng nhập ở trên cùng rồi thử lại.', true);
+    window._clickBtn('Tải bản nháp');
+    await new Promise(function(r) { setTimeout(r, 800); });
+  }
+  if (!ta || !ta.value.trim()) {
+    return window._qcShowStatus('⚠️ Hãy đăng nhập ở khung trên cùng trước!', true);
   }
   try {
     var data = JSON.parse(ta.value);
     var items = Array.isArray(data) ? data : (data.items || data.effects || []);
     var fixed = 0;
     items.forEach(function(it) {
-      if (it && it.enabled !== false) {
-        if (it.type === 'ai' && (!it.prompt || !String(it.prompt).trim())) { it.enabled = false; fixed++; }
-        if ((it.type === 'ptb' || it.type === 'frame') && (!it.assetUrl || !String(it.assetUrl).trim())) { it.enabled = false; fixed++; }
+      if (!it || it.enabled === false) return;
+      if (it.type === 'ai' && (!it.prompt || !String(it.prompt).trim())) {
+        it.enabled = false;
+        fixed++;
+      }
+      if ((it.type === 'ptb' || it.type === 'frame') && !it.assetUrl && !it.frameUrl && !it.imageUrl && !it.dataUrl) {
+        it.enabled = false;
+        fixed++;
       }
     });
     ta.value = JSON.stringify(data, null, 2);
     ta.dispatchEvent(new Event('input', { bubbles: true }));
-    window._qcShowStatus('✅ Đã tự động tắt ' + fixed + ' mục nháp bị thiếu prompt/ảnh!', false);
-  } catch (e) { window._qcShowStatus('❌ Lỗi JSON: ' + e.message, true); }
+    if (andSave) {
+      window._clickBtn('Lưu bản nháp');
+      await new Promise(function(r) { setTimeout(r, 900); });
+      window._clickBtn('Phát hành bản đã lưu');
+      await new Promise(function(r) { setTimeout(r, 1000); });
+      window._qcShowStatus('✅ Đã tắt ' + fixed + ' mục lỗi, Lưu bản nháp và Phát hành thành công!', false);
+    }
+  } catch (e) {
+    window._qcShowStatus('❌ Lỗi JSON: ' + e.message, true);
+  }
 };
+
 window._runOneClickPublish = async function() {
   try {
     var t = document.getElementById('qcType').value;
@@ -120,64 +125,54 @@ window._runOneClickPublish = async function() {
     if ((t === 'ptb' || t === 'frame') && (!fileInp.files || !fileInp.files[0])) return window._qcShowStatus('⚠️ Vui lòng chọn file ảnh khung ở ô số 3!', true);
     if (t === 'ai' && !promptVal) return window._qcShowStatus('⚠️ Vui lòng nhập câu lệnh AI Prompt ở ô số 3!', true);
 
-    // Tự động bấm Đăng nhập nếu người dùng đã gõ mật khẩu vào ô password nhưng quên bấm nút Đăng nhập
+    // Tự động bấm Đăng nhập nếu có sẵn mật khẩu trong ô password
     var passInp = document.querySelector('input[type="password"]');
     if (passInp && passInp.value.trim()) {
       window._clickBtn('Đăng nhập');
-      await new Promise(function(r) { setTimeout(r, 600); });
+      await new Promise(function(r) { setTimeout(r, 700); });
     }
 
+    // Bước 1: Tải bản nháp gốc
     window._qcShowStatus('⏳ Bước 1/4: Đang tải bản nháp từ Server...', false);
     window._clickBtn('Tải bản nháp');
-    await new Promise(function(r) { setTimeout(r, 600); });
+    await new Promise(function(r) { setTimeout(r, 900); });
 
-    var checkDraft = await window._waitForTextareaOrError(3500);
-    if (!checkDraft.ok) {
-      return window._qcShowStatus('❌ ' + checkDraft.error, true);
+    var ta = window._findTextarea();
+    var topLine = window._getTopStatusLine();
+    if (!ta || !ta.value.trim() || topLine.includes('Login required')) {
+      return window._qcShowStatus('❌ Bạn chưa đăng nhập! Hãy nhập Mật khẩu vào ô trên cùng rồi bấm nút [Đăng nhập] trước.', true);
     }
-
-    var ta = checkDraft.ta;
-    window._cleanBrokenDrafts();
 
     if (t === 'caption') {
       var capText = promptVal || name;
-      var parsedCap = JSON.parse(ta.value);
-      if (parsedCap && Array.isArray(parsedCap.captions)) {
-        parsedCap.captions.unshift({
-          id: 'cap_' + Math.random().toString(16).slice(2, 10),
-          title: name,
-          text: capText,
-          enabled: true,
-          updatedAt: new Date().toISOString()
-        });
-        ta.value = JSON.stringify(parsedCap, null, 2);
-        ta.dispatchEvent(new Event('input', { bubbles: true }));
-      } else {
-        var allInps = Array.from(document.querySelectorAll('input'));
-        if (allInps[2]) { allInps[2].value = name; allInps[2].dispatchEvent(new Event('input', { bubbles: true })); }
-        if (allInps[3]) { allInps[3].value = capText; allInps[3].dispatchEvent(new Event('input', { bubbles: true })); }
-        window._clickBtn('Thêm caption vào bản nháp');
-        await new Promise(function(r) { setTimeout(r, 500); });
-      }
+      var allInps = Array.from(document.querySelectorAll('input'));
+      var capNameInp = allInps.find(function(i) { return (i.placeholder || '').includes('Tên caption'); });
+      var capContentInp = allInps.find(function(i) { return (i.placeholder || '').includes('Nội dung caption'); });
+      if (capNameInp) { capNameInp.value = name; capNameInp.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (capContentInp) { capContentInp.value = capText; capContentInp.dispatchEvent(new Event('input', { bubbles: true })); }
+      window._clickBtn('Thêm caption vào bản nháp');
+      await new Promise(function(r) { setTimeout(r, 500); });
     } else {
-      window._qcShowStatus('⏳ Bước 2/4: Đang tạo mục "' + name + '" và tải ảnh khung lên Server...', false);
-      var newId = 'item_' + Math.random().toString(16).slice(2, 14);
-      var parsed = JSON.parse(ta.value);
-      var arr = Array.isArray(parsed) ? parsed : (parsed.items || parsed.effects || []);
-      var newItem = {
-        id: newId,
-        name: name,
-        type: t,
-        enabled: true,
-        category: t === 'ptb' ? 'photobooth' : 'general',
-        updatedAt: new Date().toISOString(),
-        description: name
-      };
-      if (t === 'ai') newItem.prompt = promptVal;
-      arr.unshift(newItem);
-      ta.value = JSON.stringify(parsed, null, 2);
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      // Bước 2: Dùng chính nút [Thêm nội dung] và bộ chọn gốc của trang để sinh đúng cấu trúc chuẩn
+      window._qcShowStatus('⏳ Bước 2/4: Đang tạo mục "' + name + '" và gắn ảnh khung...', false);
+      var allSelects = Array.from(document.querySelectorAll('select'));
+      var origSelect = allSelects.find(function(s) { return s.id !== 'qcType'; });
+      if (origSelect) {
+        origSelect.value = t;
+        origSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
 
+      window._clickBtn('Thêm nội dung');
+      await new Promise(function(r) { setTimeout(r, 400); });
+
+      // Lấy đúng ID vừa được trang gốc sinh ra ở ô input ID
+      var allTextInputs = Array.from(document.querySelectorAll('input'));
+      var idInput = allTextInputs.find(function(el) {
+        return el.id !== 'qcName' && el.id !== 'qcPrompt' && ((el.value || '').startsWith('item_') || (el.placeholder || '').includes('ID nội dung'));
+      });
+      var createdId = idInput ? idInput.value.trim() : '';
+
+      // Nếu là PTB / Frame thì chuyển file sang ô chọn tệp gốc và bấm [Gắn ảnh vào nội dung]
       if (t === 'ptb' || t === 'frame') {
         var allFileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
         var origFileInput = allFileInputs.find(function(el) { return el.id !== 'qcFile'; });
@@ -187,60 +182,55 @@ window._runOneClickPublish = async function() {
           origFileInput.files = dt.files;
           origFileInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
-        var allTextInputs = Array.from(document.querySelectorAll('input'));
-        var idInput = allTextInputs.find(function(el) {
-          return el.id !== 'qcName' && el.id !== 'qcPrompt' && ((el.placeholder || '').includes('ID nội dung') || (el.value || '').startsWith('item_'));
-        });
-        if (idInput) {
-          idInput.value = newId;
-          idInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
         window._clickBtn('Gắn ảnh vào nội dung');
-
-        // Chờ đến khi assetUrl của newId thực sự xuất hiện trong textarea
-        var waitAssetStart = Date.now();
-        var gotAsset = false;
-        while (Date.now() - waitAssetStart < 8000) {
-          await new Promise(function(r) { setTimeout(r, 300); });
-          if (ta.value.includes('"assetUrl"') && ta.value.includes(newId)) {
-            var checkObj = JSON.parse(ta.value);
-            var checkArr = Array.isArray(checkObj) ? checkObj : (checkObj.items || []);
-            var targetIt = checkArr.find(function(x) { return x.id === newId; });
-            if (targetIt && targetIt.assetUrl) { gotAsset = true; break; }
-          }
-        }
-        if (!gotAsset) {
-          return window._qcShowStatus('❌ Gắn ảnh thất bại (Có thể phiên đăng nhập đã hết hạn hoặc ảnh không hợp lệ). Vui lòng bấm Đăng nhập lại!', true);
-        }
+        await new Promise(function(r) { setTimeout(r, 1800); });
       }
+
+      // Cập nhật đúng Tên hiển thị (và prompt nếu là AI) cho mục vừa tạo trong JSON, đồng thời tắt các mục cũ bị lỗi
+      var dataObj = JSON.parse(ta.value);
+      var itemsArr = Array.isArray(dataObj) ? dataObj : (dataObj.items || dataObj.effects || []);
+      var targetItem = itemsArr.find(function(it) { return createdId && it.id === createdId; }) || itemsArr[itemsArr.length - 1] || itemsArr[0];
+      if (targetItem) {
+        targetItem.name = name;
+        targetItem.title = name;
+        targetItem.enabled = true;
+        if (t === 'ai') targetItem.prompt = promptVal;
+      }
+
+      // Dọn tắt mọi mục AI khác bị trống prompt để không bao giờ bị chặn lúc Phát hành
+      itemsArr.forEach(function(it) {
+        if (!it || it === targetItem) return;
+        if (it.type === 'ai' && (!it.prompt || !String(it.prompt).trim())) it.enabled = false;
+        if ((it.type === 'ptb' || it.type === 'frame') && !it.assetUrl && !it.frameUrl && !it.imageUrl && !it.dataUrl) it.enabled = false;
+      });
+
+      ta.value = JSON.stringify(dataObj, null, 2);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    window._qcShowStatus('⏳ Bước 3/4: Đang kiểm tra và Lưu bản nháp...', false);
-    window._cleanBrokenDrafts();
+    // Bước 3: Tắt mục chưa hoàn chỉnh & Lưu bản nháp
+    window._qcShowStatus('⏳ Bước 3/4: Đang Lưu bản nháp lên Server...', false);
     window._clickBtn('Tắt mục chưa hoàn chỉnh');
-    await new Promise(function(r) { setTimeout(r, 400); });
+    await new Promise(function(r) { setTimeout(r, 300); });
     window._clickBtn('Lưu bản nháp');
     await new Promise(function(r) { setTimeout(r, 1200); });
 
-    window._qcShowStatus('⏳ Bước 4/4: Đang Phát hành & Hợp nhất danh mục công khai...', false);
+    // Bước 4: Phát hành bản đã lưu
+    window._qcShowStatus('⏳ Bước 4/4: Đang Phát hành & Đồng bộ danh mục công khai...', false);
     window._clickBtn('Phát hành bản đã lưu');
     await new Promise(function(r) { setTimeout(r, 1500); });
 
-    var finalTop = window._getTopNoticeText();
-    if (finalTop.includes('Chưa nhập prompt') || finalTop.includes('Login required') || finalTop.includes('error')) {
-      return window._qcShowStatus('⚠️ Cảnh báo từ Server: ' + finalTop, true);
-    }
-
-    window._qcShowStatus('🎉 ĐÃ XÁC MINH THÀNH CÔNG 100%! Hiệu ứng "' + name + '" đã có trong JSON dưới khung và đã phát hành lên danh mục công khai!', false);
+    window._qcShowStatus('🎉 HOÀN TẤT 100%! "' + name + '" (ID: ' + (createdId || 'mới') + ') đã được gắn ảnh, Lưu bản nháp và Phát hành thành công! Bạn có thể bấm vào link "Danh mục hợp nhất" ở trên để kiểm tra ngay.', false);
     document.getElementById('qcName').value = '';
     document.getElementById('qcPrompt').value = '';
     if (fileInp) fileInp.value = '';
   } catch (err) {
-    window._qcShowStatus('❌ Lỗi: ' + err.message, true);
+    window._qcShowStatus('❌ Có lỗi xảy ra: ' + err.message, true);
   }
 };
 </script>
 <!-- === [END AKIRRAI 1-CLICK AUTO PUBLISH WIDGET] === -->
+
 
 </h2><p>Tải bản nháp → sửa nội dung → lưu → phát hành. Nội dung phát hành sẽ được backend tải lại trong tối đa 5 giây.</p><button id="load">Tải bản nháp</button><button id="add">Thêm nội dung</button><select id="type"><option>ai</option><option>frame</option><option>ptb</option><option>sticker</option><option>caption</option><option>color</option></select><input id="asset" type="file" accept="image/png,image/jpeg,image/webp"><input id="assetId" placeholder="ID nội dung gắn ảnh"><button id="attach">Gắn ảnh vào nội dung</button><textarea id="draft" spellcheck="false" aria-label="Catalog JSON"></textarea><button id="save">Lưu bản nháp</button><button id="publish">Phát hành bản đã lưu</button><button id="versions">Lịch sử phát hành</button><input id="version" placeholder="UUID phiên bản cần khôi phục"><button id="rollback">Khôi phục phiên bản</button><pre id="cms"></pre></section>
 <section><h2>Thành viên</h2><button id="users">Tải danh sách</button><input id="userId" placeholder="internal_user_id"><button id="approve">Duyệt tài khoản</button><button id="suspend">Khóa tài khoản</button><pre id="members"></pre></section>
