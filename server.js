@@ -176,6 +176,7 @@ app.get('/Locket_Only_Cold.sgmodule', (req, res) => {
 });
 
 const CMS_STAGE6 = require('./akirrai_cms_stage6_runtime').install(app, __dirname);
+require('./akirrai_management').install(app,CMS_STAGE6,__dirname);
 app.use('/assets', express.static(ASSETS_DIR, { maxAge: '1d' }));
 app.use(express.static(PUBLIC_DIR));
 

@@ -1,19 +1,19 @@
-# AKIRRAI web auth update
-Render branch: main
-Build: npm ci
-Start: npm start
-Health: /health
-Web: /akirrai
+# AKIRRAI management release
 
-Copy RENDER_ENV.example values into Render and replace placeholders there.
-Create the owner in Supabase Authentication with the configured email and confirm that email.
-On first successful login the verified owner is provisioned as SUPER_ADMIN.
-SePay webhook: https://YOUR_RENDER_HOST/api/akirrai/sepay/webhook
-Authentication: HMAC-SHA256; JSON payload. Configure matching secret on both sides.
-Keep payments disabled until real authentication, quota and webhook checks succeed.
+Render: branch main; build npm ci; start npm start; health /health.
+Environment: use RENDER_ENV.example; set AKIRRAI_PUBLIC_URL=https://tranhai-lk.onrender.com.
+The app uses the existing Supabase platform_kv_store, users, ai_jobs, and credit_ledger tables; no new SQL migration is needed for CMS/device management.
 
-Implemented: existing image/Photobooth pipeline, Admin web login, atomic AI reservations/refunds,
-SePay orders and idempotent database crediting, read-only users/orders/catalog views.
-Not completed: CMS editing/publish/rollback UI, public user onboarding/approval,
-and authentication in the older intercepted Locket module. Use the new web client for authenticated AI.
-No production end-to-end verification has been performed. No paid provider calls were made in tests.
+## Daily operation
+- /akirrai: log in, create an image, create/check a payment order.
+- /akirrai-manage: CMS draft, asset upload, publish, rollback, member approval/suspension, job/credit history, private device module download/revocation.
+- Create Supabase Auth accounts in Supabase Authentication, verify their email. The confirmed owner email AKIRRAI_ADMIN_EMAIL gets the owner role on first login. Other accounts create a pending app record on first login; approve it in management.
+- CMS editor uses JSON for the catalog, with buttons to add an item and attach a PNG/JPEG/WebP. AI: id/type/name/prompt; caption: value; color: color; Photobooth: layout width/height 1080, 2-4 rectangular slots. Disabled items use enabled:false. Save a draft before publishing. CMS payload limit is 10 MB.
+- Publication versions retain assets as base64 in Supabase and rematerialize image files after a Render restart. Backend instances refresh the live pointer at most every 5 seconds. Rollback changes live publication, leaving the draft unchanged.
+- Generate a PRIVATE Surge module from management. It contains a 30-day device key. Replace prior AI/Photobooth forwarding rules so exactly one forwarder handles generateFilteredImage. Do not publish the personal module on GitHub. Revocation is effective on the next backend request. New effects can be selected by id on the web client; this release does not inject new filter menus into Locket's proprietary UI.
+- Device keys can process images only; they cannot access management, account history, payments, or issue additional keys. The device forwarder sends no original Locket authorization header to the backend.
+- SePay webhook: https://tranhai-lk.onrender.com/api/akirrai/sepay/webhook ; JSON, HMAC-SHA256, incoming funds, MB 0917921802. Configure the same secret in SePay and Render. Enable AKIRRAI_SECURE_PAYMENTS=1 only after configuring real credentials and validating the receiving account. Prices are server configured in AKIRRAI_PACKAGES_JSON.
+
+## Verification limits
+Automated local checks cover CMS validation, publication ordering, rollback validation, device scope rejection, and HTTP routing. No real AI purchase, bank transfer or on-device Surge execution is performed by the updater. Supabase Auth accounts and provider keys remain your Render/Supabase configuration.
+Worker deployment to Cloudflare remains separate from Render; the authenticated module forwards to Render directly. A Render deploy does not deploy worker.js to Cloudflare.

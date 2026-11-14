@@ -19,7 +19,8 @@ const active = catalog.items.filter(x => x.enabled !== false);
 function mount() {
   const routes = new Map();
   const cms = runtime.install({
-    get: (url, fn) => routes.set(url, fn)
+    get: (url, fn) => routes.set(url, fn),
+    use: () => {}
   }, root);
   return { routes, cms };
 }

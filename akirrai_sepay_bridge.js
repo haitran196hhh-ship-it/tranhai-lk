@@ -29,7 +29,7 @@ function guarded(fn) {
     });
 }
 
-async function db(method,resource,body) {
+async function db(method,resource,body,prefer="return=representation") {
   const url=env("SUPABASE_URL");
   const key=env("SUPABASE_SECRET_KEY");
 
@@ -44,7 +44,7 @@ async function db(method,resource,body) {
       Accept:"application/json",
       ...(body?{
         "Content-Type":"application/json",
-        Prefer:"return=representation"
+        Prefer:prefer
       }:{})
     },
     body:body?JSON.stringify(body):undefined,
@@ -64,6 +64,17 @@ async function db(method,resource,body) {
 }
 
 async function member(req,admin=false) {
+  if (!admin && req.headers['x-akirrai-device-key']) {
+    if(!/^\/(api\/)?generateFilteredImage$/.test(req.path||''))throw Object.assign(Error('Device key only supports image processing'),{http:403});
+    const raw=String(req.headers['x-akirrai-device-key']);
+    if(!/^[a-f0-9]{64}$/.test(raw))throw Object.assign(Error('Invalid device key'),{http:401});
+    const hash=crypto.createHash('sha256').update(raw).digest('hex');
+    const records=await db('GET','platform_kv_store?key=eq.device_'+hash+'&select=value_json&limit=1');
+    const device=records?.[0]?.value_json;
+    if(!device||device.revoked||Date.parse(device.expiresAt)<Date.now())throw Object.assign(Error('Device key expired or revoked'),{http:401});
+    const rows=await db('GET','users?internal_user_id=eq.'+encodeURIComponent(device.userId)+'&select=internal_user_id,provider_uid,role,account_status,verification_status&limit=1');
+    const u=rows?.[0];if(!u||u.account_status!=='ACTIVE'||u.verification_status!=='ADMIN_VERIFIED')throw Object.assign(Error('Account inactive'),{http:403});return u;
+  }
   const match=/^Bearer ([^\s]+)$/.exec(
     String(req.headers.authorization||"")
   );
@@ -107,6 +118,9 @@ async function member(req,admin=false) {
     u=created?.[0];
   }
 
+  if(!u && auth.email_confirmed_at){
+    const created=await db('POST','users',{auth_user_id:auth.id,provider_uid:'auth:'+auth.id});u=created?.[0];
+  }
   if (!u || u.account_status!=="ACTIVE" ||
       u.verification_status!=="ADMIN_VERIFIED")
     throw Object.assign(Error("Unverified account"),{http:403});
