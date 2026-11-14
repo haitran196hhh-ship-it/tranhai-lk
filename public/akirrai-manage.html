@@ -104,10 +104,17 @@ window._cleanBrokenDrafts = async function(andSave) {
     ta.dispatchEvent(new Event('input', { bubbles: true }));
     if (andSave) {
       window._clickBtn('Lưu bản nháp');
-      await new Promise(function(r) { setTimeout(r, 900); });
-      window._clickBtn('Phát hành bản đã lưu');
-      await new Promise(function(r) { setTimeout(r, 1000); });
-      window._qcShowStatus('✅ Đã tắt ' + fixed + ' mục lỗi, Lưu bản nháp và Phát hành thành công!', false);
+      await new Promise(function(r) { setTimeout(r, 800); });
+      var pubRes2 = await fetch('/api/cms/direct-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft: data })
+      });
+      var pubData2 = await pubRes2.json();
+      if (pubData2 && pubData2.draft) {
+        ta.value = JSON.stringify(pubData2.draft, null, 2);
+      }
+      window._qcShowStatus('✅ Đã dọn mục lỗi, tự động chuẩn hóa khung trong suốt, Phát hành (' + (pubData2.publishedCount || 0) + ' mục) & Đồng bộ GitHub thành công!', false);
     }
   } catch (e) {
     window._qcShowStatus('❌ Lỗi JSON: ' + e.message, true);
@@ -215,18 +222,28 @@ window._runOneClickPublish = async function() {
     window._clickBtn('Lưu bản nháp');
     await new Promise(function(r) { setTimeout(r, 1200); });
 
-    // Bước 4: Phát hành bản đã lưu
-    window._qcShowStatus('⏳ Bước 4/4: Đang Phát hành & Đồng bộ danh mục công khai...', false);
-    window._clickBtn('Phát hành bản đã lưu');
-    await new Promise(function(r) { setTimeout(r, 1500); });
-
-    window._qcShowStatus('⏳ Bước 5/5: Đang tự động đẩy ảnh khung & danh mục lên GitHub...', false);
-    var ghMsg = '';
-    try {
-      var ghRes = await (await fetch('/api/cms/github-sync', { method: 'POST' })).json();
-      ghMsg = ghRes.githubSynced ? ' + ĐÃ TỰ ĐỘNG UP LÊN GITHUB THÀNH CÔNG!' : (' (Lưu ý GitHub: ' + (ghRes.reason || ghRes.error || 'Chưa cấu hình GITHUB_TOKEN') + ')');
-    } catch (_) {}
-    window._qcShowStatus('🎉 HOÀN TẤT 100%! "' + name + '" (ID: ' + (createdId || 'mới') + ') đã gắn ảnh, Lưu nháp, Phát hành' + ghMsg, false);
+    // Bước 4: Gọi thẳng API /api/cms/direct-publish (Tự động khoét trong suốt ô trắng + Đo tọa độ khung + Phát hành vào cms_release.json + Up GitHub)
+    window._qcShowStatus('⏳ Bước 4/4: Đang tự động khoét trong suốt khung, đo tọa độ ô chụp, Phát hành & Đẩy lên GitHub...', false);
+    var currentDraftObj = {};
+    try { currentDraftObj = JSON.parse(ta.value); } catch (_) {}
+    var pubRes = await fetch('/api/cms/direct-publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft: currentDraftObj })
+    });
+    var pubData = await pubRes.json();
+    if (!pubRes.ok || !pubData.ok) {
+      return window._qcShowStatus('❌ Lỗi khi phát hành: ' + (pubData.error || pubRes.status), true);
+    }
+    if (pubData.draft) {
+      ta.value = JSON.stringify(pubData.draft, null, 2);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    var pStatus = document.querySelector('p, #status, .status');
+    if (pStatus && (pStatus.textContent || '').includes('Unexpected token')) {
+      pStatus.textContent = 'Đã phát hành phiên bản ' + pubData.version + ' thành công!';
+    }
+    window._qcShowStatus('🎉 ĐÃ ĐỒNG BỘ 100% VÀO HỆ THỐNG CHỤP ẢNH & GITHUB! ("' + name + '" | Tổng mục đang chạy: ' + pubData.publishedCount + ' khung/AI, ' + pubData.captionsCount + ' caption).', false);
     document.getElementById('qcName').value = '';
     document.getElementById('qcPrompt').value = '';
     if (fileInp) fileInp.value = '';

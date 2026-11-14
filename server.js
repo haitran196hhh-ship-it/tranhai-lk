@@ -1050,74 +1050,110 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 
-// === [AUTO SYNC UPLOADED FRAMES & CATALOG TO GITHUB] ===
+// === [AUTO SYNC UPLOADED FRAMES & CATALOG TO GITHUB + DIRECT PUBLISH] ===
 const ghAutoSync = require("./github_auto_sync");
-app.post("/api/cms/github-sync", async (req, res) => {
+const { analyzeAndPrepareFrame } = require("./auto_frame_analyzer");
+
+app.post("/api/cms/direct-publish", express.json({ limit: "25mb" }), async (req, res) => {
   try {
-    const results = [];
-    const uploadedPaths = new Set();
-
-    // 1. Day file cms_release.json o thu muc goc (noi luu toan bo noi dung CMS da phat hanh)
+    const draftPayload = req.body && req.body.draft ? req.body.draft : req.body;
     const rootReleasePath = path.join(__dirname, "cms_release.json");
+    let currentRelease = {};
     if (fs.existsSync(rootReleasePath)) {
-      const relBuf = fs.readFileSync(rootReleasePath);
-      const rRel = await ghAutoSync.pushFileToGitHub("cms_release.json", relBuf, "feat(cms): update cms_release.json");
-      results.push(rRel);
-
-      // Doc tat ca assetUrl trong cms_release.json de day dung file anh do len GitHub
-      try {
-        const relJson = JSON.parse(relBuf.toString("utf8"));
-        const allItems = [
-          ...(Array.isArray(relJson.items) ? relJson.items : []),
-          ...(Array.isArray(relJson?.published?.items) ? relJson.published.items : []),
-          ...(Array.isArray(relJson?.draft?.items) ? relJson.draft.items : [])
-        ];
-        for (const it of allItems) {
-          const rawUrl = it && (it.assetUrl || it.frameUrl || it.imageUrl);
-          if (rawUrl && typeof rawUrl === "string" && rawUrl.startsWith("/")) {
-            const cleanRelPath = rawUrl.replace(/^\/+/, "");
-            const localImgPath = path.join(__dirname, cleanRelPath);
-            if (fs.existsSync(localImgPath) && !uploadedPaths.has(cleanRelPath)) {
-              uploadedPaths.add(cleanRelPath);
-              const imgBuf = fs.readFileSync(localImgPath);
-              const rImg = await ghAutoSync.pushFileToGitHub(cleanRelPath, imgBuf, "feat(cms): upload frame asset " + path.basename(cleanRelPath));
-              results.push(rImg);
-            }
-          }
-        }
-      } catch (_) {}
+      try { currentRelease = JSON.parse(fs.readFileSync(rootReleasePath, "utf8")); } catch (_) {}
     }
 
-    // 2. Quet them 5 file anh moi nhat theo thoi gian sua doi trong assets/frames (bat ke ten file la gi)
-    const framesDir = path.join(__dirname, "assets", "frames");
-    if (fs.existsSync(framesDir)) {
-      const recentFrames = fs.readdirSync(framesDir)
-        .map(f => ({ name: f, full: path.join(framesDir, f), mtime: fs.statSync(path.join(framesDir, f)).mtimeMs }))
-        .filter(x => Date.now() - x.mtime < 24 * 60 * 60 * 1000) // File moi tao trong 24h qua
-        .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, 5);
+    const rawItems = Array.isArray(draftPayload?.items) ? draftPayload.items : (Array.isArray(currentRelease?.draft?.items) ? currentRelease.draft.items : []);
+    const rawCaptions = Array.isArray(draftPayload?.captions) ? draftPayload.captions : (Array.isArray(currentRelease?.draft?.captions) ? currentRelease.draft.captions : []);
 
-      for (const rf of recentFrames) {
-        const relFramePath = "assets/frames/" + rf.name;
-        if (!uploadedPaths.has(relFramePath)) {
-          uploadedPaths.add(relFramePath);
-          const buf = fs.readFileSync(rf.full);
-          const rF = await ghAutoSync.pushFileToGitHub(relFramePath, buf, "feat(cms): auto-upload frame " + rf.name);
-          results.push(rF);
+    // Loc sach cac muc loi va tu dong khoet trong suot + do toa do slots cho cac khung PTB/Frame moi
+    const cleanItems = [];
+    for (const it of rawItems) {
+      if (!it || !it.id) continue;
+      if (it.type === "ai" && (!it.prompt || !String(it.prompt).trim())) continue;
+      const assetRel = it.assetUrl || it.frameUrl || it.imageUrl;
+      if ((it.type === "ptb" || it.type === "frame") && !assetRel) continue;
+
+      if ((it.type === "ptb" || it.type === "frame") && assetRel && assetRel.startsWith("/")) {
+        const localFile = path.join(__dirname, assetRel.replace(/^\/+/, ""));
+        if (fs.existsSync(localFile)) {
+          try {
+            const layoutInfo = await analyzeAndPrepareFrame(localFile, it.type);
+            it.layout = {
+              canvasWidth: layoutInfo.canvasWidth,
+              canvasHeight: layoutInfo.canvasHeight,
+              slots: layoutInfo.slots
+            };
+          } catch (errAnalyze) {
+            console.warn("Auto analyze frame warning:", errAnalyze.message);
+          }
+        }
+      }
+      it.enabled = it.enabled !== false;
+      cleanItems.push(it);
+    }
+
+    const nowIso = new Date().toISOString();
+    const versionId = "ver_" + Date.now();
+    const updatedRelease = {
+      ...currentRelease,
+      version: versionId,
+      updatedAt: nowIso,
+      publishedAt: nowIso,
+      items: cleanItems,
+      captions: rawCaptions,
+      draft: {
+        items: cleanItems,
+        captions: rawCaptions,
+        updatedAt: nowIso
+      },
+      published: {
+        version: versionId,
+        publishedAt: nowIso,
+        items: cleanItems,
+        captions: rawCaptions
+      }
+    };
+
+    fs.writeFileSync(rootReleasePath, JSON.stringify(updatedRelease, null, 2), "utf8");
+
+    // Dong bo AI prompts moi vao AI_PROMPTS runtime neu co
+    if (typeof AI_PROMPTS === "object" && AI_PROMPTS !== null) {
+      for (const it of cleanItems) {
+        if (it.type === "ai" && it.prompt && it.enabled !== false) {
+          AI_PROMPTS[it.id] = it.prompt;
         }
       }
     }
 
-    const anyPushed = results.some(x => x.pushed);
-    res.json({
+    // Day cms_release.json va tat ca file anh khung trong cleanItems len GitHub
+    const ghResults = [];
+    const uploadedSet = new Set();
+    const relBuf = fs.readFileSync(rootReleasePath);
+    ghResults.push(await ghAutoSync.pushFileToGitHub("cms_release.json", relBuf, "feat(cms): publish cms_release.json (" + cleanItems.length + " items)"));
+
+    for (const it of cleanItems) {
+      const rawUrl = it.assetUrl || it.frameUrl || it.imageUrl;
+      if (rawUrl && typeof rawUrl === "string" && rawUrl.startsWith("/")) {
+        const cleanRel = rawUrl.replace(/^\/+/, "");
+        const localPath = path.join(__dirname, cleanRel);
+        if (fs.existsSync(localPath) && !uploadedSet.has(cleanRel)) {
+          uploadedSet.add(cleanRel);
+          ghResults.push(await ghAutoSync.pushFileToGitHub(cleanRel, fs.readFileSync(localPath), "feat(cms): sync transparent frame " + path.basename(cleanRel)));
+        }
+      }
+    }
+
+    return res.json({
       ok: true,
-      githubSynced: anyPushed,
-      pushedFiles: Array.from(uploadedPaths).concat(fs.existsSync(rootReleasePath) ? ["cms_release.json"] : []),
-      reason: anyPushed ? "Đã đẩy cms_release.json và ảnh khung lên GitHub!" : "Chưa có file mới hoặc thiếu GITHUB_TOKEN",
-      results
+      version: versionId,
+      publishedCount: cleanItems.length,
+      captionsCount: rawCaptions.length,
+      githubSynced: ghResults.some(r => r && r.pushed),
+      draft: updatedRelease.draft
     });
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
   }
 });
 app.listen(PORT, () => {
