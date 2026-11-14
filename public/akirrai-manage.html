@@ -220,7 +220,13 @@ window._runOneClickPublish = async function() {
     window._clickBtn('Phát hành bản đã lưu');
     await new Promise(function(r) { setTimeout(r, 1500); });
 
-    window._qcShowStatus('🎉 HOÀN TẤT 100%! "' + name + '" (ID: ' + (createdId || 'mới') + ') đã được gắn ảnh, Lưu bản nháp và Phát hành thành công! Bạn có thể bấm vào link "Danh mục hợp nhất" ở trên để kiểm tra ngay.', false);
+    window._qcShowStatus('⏳ Bước 5/5: Đang tự động đẩy ảnh khung & danh mục lên GitHub...', false);
+    var ghMsg = '';
+    try {
+      var ghRes = await (await fetch('/api/cms/github-sync', { method: 'POST' })).json();
+      ghMsg = ghRes.githubSynced ? ' + ĐÃ TỰ ĐỘNG UP LÊN GITHUB THÀNH CÔNG!' : (' (Lưu ý GitHub: ' + (ghRes.reason || ghRes.error || 'Chưa cấu hình GITHUB_TOKEN') + ')');
+    } catch (_) {}
+    window._qcShowStatus('🎉 HOÀN TẤT 100%! "' + name + '" (ID: ' + (createdId || 'mới') + ') đã gắn ảnh, Lưu nháp, Phát hành' + ghMsg, false);
     document.getElementById('qcName').value = '';
     document.getElementById('qcPrompt').value = '';
     if (fileInp) fileInp.value = '';

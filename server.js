@@ -1049,6 +1049,48 @@ setInterval(() => {
     } catch (e) {}
 }, 60 * 60 * 1000);
 
+
+// === [AUTO SYNC UPLOADED FRAMES & CATALOG TO GITHUB] ===
+const ghAutoSync = require("./github_auto_sync");
+app.post("/api/cms/github-sync", async (req, res) => {
+  try {
+    const results = [];
+    // 1. Tim cac file anh cms_* moi nhat trong assets/frames de day len GitHub
+    const framesDir = path.join(__dirname, "assets", "frames");
+    if (fs.existsSync(framesDir)) {
+      const files = fs.readdirSync(framesDir).filter(f => f.startsWith("cms_"));
+      for (const f of files.slice(-5)) {
+        const full = path.join(framesDir, f);
+        const buf = fs.readFileSync(full);
+        const r = await ghAutoSync.pushFileToGitHub("assets/frames/" + f, buf, "feat(cms): auto-upload frame " + f);
+        results.push(r);
+      }
+    }
+    // 2. Dong bo cac file JSON danh muc trong data/
+    const dataDir = path.join(__dirname, "data");
+    if (fs.existsSync(dataDir)) {
+      const jsonFiles = fs.readdirSync(dataDir).filter(f => f.endsWith(".json"));
+      for (const jf of jsonFiles) {
+        if (jf.includes("cms") || jf.includes("catalog") || jf.includes("prompt")) {
+          const fullJ = path.join(dataDir, jf);
+          const bufJ = fs.readFileSync(fullJ);
+          const rJ = await ghAutoSync.pushFileToGitHub("data/" + jf, bufJ, "feat(cms): auto-sync catalog " + jf);
+          results.push(rJ);
+        }
+      }
+    }
+    const anyPushed = results.some(x => x.pushed);
+    res.json({
+      ok: true,
+      githubSynced: anyPushed,
+      reason: anyPushed ? "Đã đẩy ảnh khung và danh mục lên GitHub thành công!" : (results[0]?.reason || "Chưa có GITHUB_TOKEN trên Render"),
+      results
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(PORT, () => {
     console.log(`Locket Backend Mod Server is running on port ${PORT}`);
 });
