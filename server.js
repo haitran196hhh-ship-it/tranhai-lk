@@ -1055,42 +1055,71 @@ const ghAutoSync = require("./github_auto_sync");
 app.post("/api/cms/github-sync", async (req, res) => {
   try {
     const results = [];
-    // 1. Tim cac file anh cms_* moi nhat trong assets/frames de day len GitHub
+    const uploadedPaths = new Set();
+
+    // 1. Day file cms_release.json o thu muc goc (noi luu toan bo noi dung CMS da phat hanh)
+    const rootReleasePath = path.join(__dirname, "cms_release.json");
+    if (fs.existsSync(rootReleasePath)) {
+      const relBuf = fs.readFileSync(rootReleasePath);
+      const rRel = await ghAutoSync.pushFileToGitHub("cms_release.json", relBuf, "feat(cms): update cms_release.json");
+      results.push(rRel);
+
+      // Doc tat ca assetUrl trong cms_release.json de day dung file anh do len GitHub
+      try {
+        const relJson = JSON.parse(relBuf.toString("utf8"));
+        const allItems = [
+          ...(Array.isArray(relJson.items) ? relJson.items : []),
+          ...(Array.isArray(relJson?.published?.items) ? relJson.published.items : []),
+          ...(Array.isArray(relJson?.draft?.items) ? relJson.draft.items : [])
+        ];
+        for (const it of allItems) {
+          const rawUrl = it && (it.assetUrl || it.frameUrl || it.imageUrl);
+          if (rawUrl && typeof rawUrl === "string" && rawUrl.startsWith("/")) {
+            const cleanRelPath = rawUrl.replace(/^\/+/, "");
+            const localImgPath = path.join(__dirname, cleanRelPath);
+            if (fs.existsSync(localImgPath) && !uploadedPaths.has(cleanRelPath)) {
+              uploadedPaths.add(cleanRelPath);
+              const imgBuf = fs.readFileSync(localImgPath);
+              const rImg = await ghAutoSync.pushFileToGitHub(cleanRelPath, imgBuf, "feat(cms): upload frame asset " + path.basename(cleanRelPath));
+              results.push(rImg);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Quet them 5 file anh moi nhat theo thoi gian sua doi trong assets/frames (bat ke ten file la gi)
     const framesDir = path.join(__dirname, "assets", "frames");
     if (fs.existsSync(framesDir)) {
-      const files = fs.readdirSync(framesDir).filter(f => f.startsWith("cms_"));
-      for (const f of files.slice(-5)) {
-        const full = path.join(framesDir, f);
-        const buf = fs.readFileSync(full);
-        const r = await ghAutoSync.pushFileToGitHub("assets/frames/" + f, buf, "feat(cms): auto-upload frame " + f);
-        results.push(r);
-      }
-    }
-    // 2. Dong bo cac file JSON danh muc trong data/
-    const dataDir = path.join(__dirname, "data");
-    if (fs.existsSync(dataDir)) {
-      const jsonFiles = fs.readdirSync(dataDir).filter(f => f.endsWith(".json"));
-      for (const jf of jsonFiles) {
-        if (jf.includes("cms") || jf.includes("catalog") || jf.includes("prompt")) {
-          const fullJ = path.join(dataDir, jf);
-          const bufJ = fs.readFileSync(fullJ);
-          const rJ = await ghAutoSync.pushFileToGitHub("data/" + jf, bufJ, "feat(cms): auto-sync catalog " + jf);
-          results.push(rJ);
+      const recentFrames = fs.readdirSync(framesDir)
+        .map(f => ({ name: f, full: path.join(framesDir, f), mtime: fs.statSync(path.join(framesDir, f)).mtimeMs }))
+        .filter(x => Date.now() - x.mtime < 24 * 60 * 60 * 1000) // File moi tao trong 24h qua
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 5);
+
+      for (const rf of recentFrames) {
+        const relFramePath = "assets/frames/" + rf.name;
+        if (!uploadedPaths.has(relFramePath)) {
+          uploadedPaths.add(relFramePath);
+          const buf = fs.readFileSync(rf.full);
+          const rF = await ghAutoSync.pushFileToGitHub(relFramePath, buf, "feat(cms): auto-upload frame " + rf.name);
+          results.push(rF);
         }
       }
     }
+
     const anyPushed = results.some(x => x.pushed);
     res.json({
       ok: true,
       githubSynced: anyPushed,
-      reason: anyPushed ? "Đã đẩy ảnh khung và danh mục lên GitHub thành công!" : (results[0]?.reason || "Chưa có GITHUB_TOKEN trên Render"),
+      pushedFiles: Array.from(uploadedPaths).concat(fs.existsSync(rootReleasePath) ? ["cms_release.json"] : []),
+      reason: anyPushed ? "Đã đẩy cms_release.json và ảnh khung lên GitHub!" : "Chưa có file mới hoặc thiếu GITHUB_TOKEN",
       results
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
-
 app.listen(PORT, () => {
     console.log(`Locket Backend Mod Server is running on port ${PORT}`);
 });
