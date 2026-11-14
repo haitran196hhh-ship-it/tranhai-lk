@@ -42,7 +42,7 @@
  if(typeof module!=='undefined'&&module.exports){module.exports=transform;return;}
  var done=false;function finish(value){if(!done){done=true;$done(value);}}
  var timer=setTimeout(function(){try{finish({body:JSON.stringify(transform(JSON.parse($response.body),{schemaVersion:1,items:[],version:'legacy-fallback'}))});}catch(e){finish({});}},8000);
- $httpClient.get({url:'https://tranhai-lk.onrender.com/api/akirrai/catalog',timeout:7},function(error,response,data){
+ $httpClient.get({url:'https://tranhai-lk.onrender.com/api/akirrai/catalog-live',timeout:7},function(error,response,data){
   clearTimeout(timer);if(error||!response||Number(response.status||response.statusCode)!==200){try{finish({body:JSON.stringify(transform(JSON.parse($response.body),{schemaVersion:1,items:[],version:'legacy-fallback'},typeof $argument!=='undefined'&&$argument==='captions-only'))});}catch(e){finish({});}return;}
   try{finish({body:JSON.stringify(transform(JSON.parse($response.body),JSON.parse(data),typeof $argument!=='undefined'&&$argument==='captions-only'))});}catch(e){finish({});}
  });

@@ -11,6 +11,18 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 
+
+/* CMS_DYNAMIC_FRAME_MATCHER */
+function getCmsFrameById(effectId) {
+  try {
+    const p = path.join(__dirname, "cms_release.json");
+    if (!fs.existsSync(p)) return null;
+    const data = JSON.parse(fs.readFileSync(p, "utf8"));
+    const list = Array.isArray(data?.published?.items) ? data.published.items : (Array.isArray(data?.items) ? data.items : []);
+    return list.find(x => x && x.enabled !== false && (x.id === effectId || ("cms_" + x.id) === effectId)) || null;
+  } catch (_) { return null; }
+}
+
 const app = express(); /* GLOBAL_50MB_JSON_FIX */
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -1052,6 +1064,46 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 
+
+// === [UNIFIED CATALOG & PRIVATE REPO STATIC SERVING + PTB RENDERING] ===
+app.use("/js", express.static(path.join(__dirname, "js"), { maxAge: 0 }));
+app.use("/modules", express.static(path.join(__dirname, "modules"), { maxAge: 0 }));
+app.use("/assets", express.static(path.join(__dirname, "assets"), { maxAge: 0 }));
+
+// Phuc vu truc tiep cac file .sgmodule va .conf qua duong dan Render (An toan khi GitHub repo o che do Private)
+app.get("/:modFile(*.sgmodule|*.conf|*.module)", (req, res, next) => {
+  const fname = path.basename(req.params.modFile);
+  const rootCandidate = path.join(__dirname, fname);
+  const subCandidate = path.join(__dirname, "modules", fname);
+  const target = fs.existsSync(rootCandidate) ? rootCandidate : (fs.existsSync(subCandidate) ? subCandidate : null);
+  if (target) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    return res.send(fs.readFileSync(target, "utf8"));
+  }
+  next();
+});
+
+// Dam bao /api/akirrai/catalog luon tra ve danh sach hop nhat moi nhat tu cms_release.json
+app.get("/api/akirrai/catalog-live", (req, res) => {
+  try {
+    const relPath = path.join(__dirname, "cms_release.json");
+    if (!fs.existsSync(relPath)) return res.json({ schemaVersion: 1, version: "empty", items: [], captions: [] });
+    const raw = JSON.parse(fs.readFileSync(relPath, "utf8"));
+    const pubItems = Array.isArray(raw?.published?.items) ? raw.published.items : (Array.isArray(raw?.items) ? raw.items : []);
+    const pubCaps = Array.isArray(raw?.published?.captions) ? raw.published.captions : (Array.isArray(raw?.captions) ? raw.captions : []);
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({
+      schemaVersion: 1,
+      version: raw.version || raw?.published?.version || String(Date.now()),
+      items: pubItems.filter(x => x && x.enabled !== false),
+      captions: pubCaps.filter(x => x && x.enabled !== false)
+    });
+  } catch (e) {
+    return res.json({ schemaVersion: 1, version: "error", items: [], captions: [] });
+  }
+});
+
 // === [AUTO SYNC UPLOADED FRAMES & CATALOG TO GITHUB + DIRECT PUBLISH] ===
 const ghAutoSync = require("./github_auto_sync");
 const { analyzeAndPrepareFrame } = require("./auto_frame_analyzer");
@@ -1097,22 +1149,39 @@ app.post("/api/cms/direct-publish", express.json({ limit: "25mb" }), async (req,
 
     const nowIso = new Date().toISOString();
     const versionId = "ver_" + Date.now();
+    const normalizedItems = cleanItems.map(it => {
+      const assetPath = it.assetUrl || it.frameUrl || it.imageUrl || "";
+      const fullAssetUrl = assetPath.startsWith("http") ? assetPath : ("https://tranhai-lk.onrender.com" + (assetPath.startsWith("/") ? "" : "/") + assetPath);
+      return {
+        ...it,
+        id: String(it.id).trim(),
+        name: String(it.name || it.title || it.id).trim(),
+        title: String(it.name || it.title || it.id).trim(),
+        type: it.type || "ptb",
+        enabled: it.enabled !== false,
+        assetUrl: assetPath,
+        fullAssetUrl: fullAssetUrl
+      };
+    });
     const updatedRelease = {
       ...currentRelease,
+      schemaVersion: 1,
       version: versionId,
       updatedAt: nowIso,
       publishedAt: nowIso,
-      items: cleanItems,
+      items: normalizedItems,
       captions: rawCaptions,
       draft: {
-        items: cleanItems,
+        schemaVersion: 1,
+        items: normalizedItems,
         captions: rawCaptions,
         updatedAt: nowIso
       },
       published: {
+        schemaVersion: 1,
         version: versionId,
         publishedAt: nowIso,
-        items: cleanItems,
+        items: normalizedItems,
         captions: rawCaptions
       }
     };
