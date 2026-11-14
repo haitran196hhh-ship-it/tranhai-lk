@@ -3,19 +3,20 @@ const crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:pat
 const {member,db}=require('./akirrai_sepay_bridge');
 const {compile}=require('./akirrai_cms_stage6_runtime');
 exports.install=(app,cms,root)=>{
- const route=(method,url,admin,fn)=>app[method](url,async(req,res)=>{res.setHeader('Cache-Control','no-store');try{const u=await member(req,admin);await fn(req,res,u)}catch(e){if(!res.headersSent)res.status(e.http||503).json({error:e.http?e.message:'Operation failed; check server configuration'})}});
+ const route=(method,url,admin,fn)=>app[method](url,async(req,res)=>{res.setHeader('Cache-Control','no-store');try{const u=await member(req,admin);await fn(req,res,u)}catch(e){if(!res.headersSent)res.status(e.http||(['Invalid catalog','Catalog exceeds 10 MB','Invalid CMS item','Invalid name'].includes(e.message)?400:503)).json({error:e.http||['Invalid catalog','Catalog exceeds 10 MB','Invalid CMS item','Invalid name'].includes(e.message)?e.message:'Không thể kết nối dịch vụ dữ liệu. Bản đang sửa vẫn được giữ; hãy thử lưu lại sau.'})}});
+ app.get('/akirrai-captions.module',(_req,res)=>{res.setHeader('Content-Type','text/plain; charset=utf-8');res.setHeader('Cache-Control','no-store');res.send(['#!name=AKIRRAI Public Captions','#!desc=Published captions only. No personal API key.','[Script]','AKIRRAI_CAPTIONS = type=http-response,pattern=^https://firebaseremoteconfig[.]googleapis[.]com/.*,requires-body=1,max-size=2097152,script-path=https://tranhai-lk.onrender.com/js/akirrai_catalog_sync.js,argument=captions-only,timeout=10','[MITM]','hostname = %APPEND% firebaseremoteconfig.googleapis.com'].join('\n'));});
  const read=async key=>(await db('GET','platform_kv_store?key=eq.'+encodeURIComponent(key)+'&select=value_json,updated_at&limit=1'))?.[0];
  const put=(key,value)=>db('POST','platform_kv_store',{key,value_json:value,updated_at:new Date().toISOString()},'resolution=merge-duplicates,return=representation');
  route('get','/api/akirrai/v2/cms/draft',true,async(_q,res)=>{const row=await read('cms_draft');res.json(row||{value_json:cms.fallback,updated_at:null})});
  route('post','/api/akirrai/v2/cms/draft',true,async(req,res)=>{
-  const catalog=req.body?.catalog;compile(catalog,root);
+  const catalog=req.body?.catalog;compile(catalog,root,{draft:true});
   const current=await read('cms_draft');if(current&&req.body.expected!==current.updated_at)return res.status(409).json({error:'Draft changed. Reload before saving.'});
   if(current){const rows=await db('PATCH','platform_kv_store?key=eq.cms_draft&updated_at=eq.'+encodeURIComponent(current.updated_at),{value_json:catalog,updated_at:new Date().toISOString()});if(!rows?.length)return res.status(409).json({error:'Draft changed'});res.json(rows[0]);}
   else{const rows=await db('POST','platform_kv_store',{key:'cms_draft',value_json:catalog});res.json(rows[0]);}
  });
  route('post','/api/akirrai/v2/cms/publish',true,async(req,res,u)=>{
   const draft=await read('cms_draft');if(!draft||req.body.expected!==draft.updated_at)return res.status(409).json({error:'Save and reload the current draft first'});
-  compile(draft.value_json,root);const version=crypto.randomUUID();
+  compile(draft.value_json,root,{publish:true});const version=crypto.randomUUID();
   await put('cms_version_'+version,{catalog:draft.value_json,version,author:u.internal_user_id,createdAt:new Date().toISOString()});
   await put('cms_live',{catalog:draft.value_json,version});await cms.refresh(true);res.json({version});
  });

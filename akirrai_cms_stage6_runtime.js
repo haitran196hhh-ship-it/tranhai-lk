@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-function compile(catalog,root){
+function compile(catalog,root,options={}){
  if(catalog?.schemaVersion!==1||!Array.isArray(catalog.items)||catalog.items.length>500)throw Error('Invalid catalog');
  if(Buffer.byteLength(JSON.stringify(catalog))>10000000)throw Error('Catalog exceeds 10 MB');
  const seen=new Set();
@@ -10,7 +10,10 @@ function compile(catalog,root){
   if(!/^[a-z0-9][a-z0-9_-]{1,59}$/.test(i.id)||seen.has(i.id)||!['frame','ptb','sticker','caption','color','ai'].includes(i.type))throw Error('Invalid CMS item');
   seen.add(i.id);
   if(typeof i.name!=='string'||i.name.length>160)throw Error('Invalid name');
+  if(i.enabled===false)continue;
+  try {
   if(['frame','ptb','sticker'].includes(i.type)){
+   if(options.draft&&!i.assetBase64&&!i.assetUrl)continue;
    if(i.assetBase64){
     if(!/^[A-Za-z0-9+/=]+$/.test(i.assetBase64)||i.assetBase64.length>7000000)throw Error('Invalid asset');
     const buf=Buffer.from(i.assetBase64,'base64');
@@ -28,8 +31,11 @@ function compile(catalog,root){
    const l=i.layout;if(l?.width!==1080||l?.height!==1080||![2,3,4].includes(l?.slots?.length))throw Error('Invalid layout');
    for(const s of l.slots)if(!['left','top','width','height'].every(k=>Number.isInteger(s[k]))||s.left<0||s.top<0||s.width<1||s.height<1||s.left+s.width>1080||s.top+s.height>1080)throw Error('Invalid slot');
   }
+  if(options.publish&&i.type==='ai'&&(!i.prompt||!String(i.prompt).trim()))throw Error('Chưa nhập prompt AI; hãy điền hoặc tắt mục này');
+  if(i.type==='caption'&&(options.publish||i.value)){if(typeof i.value!=='string'||!i.value.trim()||i.value.length>1000)throw Error('Caption phải có nội dung, tối đa 1000 ký tự');if(i.color&&!/^#[0-9a-f]{6}$/i.test(i.color))throw Error('Màu caption phải có dạng #3864DB');}
   if(i.prompt&&String(i.prompt).length>3500)throw Error('Prompt too long');
-  if(i.enabled!==false)map.set(i.id,i);
+  map.set(i.id,i);
+  }catch(e){const messages={'Invalid asset URL':'Chưa gắn ảnh hoặc đường dẫn ảnh không hợp lệ','Missing asset':'Không tìm thấy ảnh khung','Invalid layout':'Bố cục phải là 1080×1080 và có 2–4 ô','Invalid slot':'Tọa độ ô ảnh vượt khung hoặc không hợp lệ'};const err=Error(i.id+': '+(messages[e.message]||e.message));err.http=400;throw err;}
  }
  return map;
 }
