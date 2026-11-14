@@ -42,8 +42,8 @@ exports.install=(app,cms,root)=>{
   await put('device_'+hash,{userId:u.internal_user_id,expiresAt,revoked:false});
   const origin=String(process.env.AKIRRAI_PUBLIC_URL||'https://tranhai-lk.onrender.com');
   if(!/^https:\/\/[a-z0-9.-]+$/.test(origin))throw Error('Invalid public URL');
-  const moduleText=['#!name=AKIRRAI Authenticated AI','# Keep this personal module private. Expires '+expiresAt,'[Script]', 'AKIRRAI_AI = type=http-request,pattern=^https:\\/\\/(?:us-central1-locket-4252a\\.cloudfunctions\\.net|api\\.locketcamera\\.com|gateway\\.locketcamera\\.com|tranhai-lk\\.onrender\\.com)\\/(?:api\\/)?generateFilteredImage,requires-body=1,max-size=-1,script-path='+origin+'/js/akirrai_authenticated.js,argument='+token+',timeout=120','[MITM]','hostname = %APPEND% api.locketcamera.com, gateway.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net, tranhai-lk.onrender.com'].join('\n');
-  res.json({deviceId:hash,expiresAt,module:moduleText});
+  const moduleText=['#!name=AKIRRAI Authenticated AI','# Keep this personal module private. Expires '+expiresAt,'[Script]', 'AKIRRAI_AI = type=http-request,pattern=^https:\\/\\/(?:us-central1-locket-4252a\\.cloudfunctions\\.net|api\\.locketcamera\\.com|gateway\\.locketcamera\\.com|tranhai-lk\\.onrender\\.com)\\/(?:api\\/)?generateFilteredImage,requires-body=1,max-size=-1,script-path='+origin+'/js/akirrai_authenticated.js,argument='+token+',timeout=120','AKIRRAI_CMS = type=http-response,pattern=^https://firebaseremoteconfig[.]googleapis[.]com/.*,requires-body=1,max-size=2097152,script-path='+origin+'/js/akirrai_catalog_sync.js,timeout=10','[MITM]','hostname = %APPEND% firebaseremoteconfig.googleapis.com, api.locketcamera.com, gateway.locketcamera.com, us-central1-locket-4252a.cloudfunctions.net, tranhai-lk.onrender.com'].join('\n');
+  res.json({deviceId:hash,expiresAt,module:moduleText,shadowrocketModule:moduleText});
  });
  route('post','/api/akirrai/v2/device/revoke',false,async(req,res,u)=>{
   if(req.headers['x-akirrai-device-key'])return res.status(403).json({error:'Use web login'});
